@@ -5,9 +5,9 @@ import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc
 import React, { useState, useEffect, useCallback } from 'react';
 import './index.css';
 
-// Define the main App component
+// Definir el componente principal de la aplicación
 function App() {
-  // State variables for Firebase and user authentication
+  // Variables de estado para Firebase y la autenticación de usuarios
   const [db, setDb] = useState(null);
   const [auth, setAuth] = useState(null);
   const [userId, setUserId] = useState(null);
