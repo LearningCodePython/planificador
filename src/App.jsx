@@ -1,4 +1,3 @@
-
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
@@ -6,7 +5,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import './index.css';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 
-
+// Formulario de login
 function AuthForm({ auth }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -66,7 +65,7 @@ function AuthForm({ auth }) {
 }
 
 
-// Definir el componente principal de la aplicación
+// Es el componente principal de la aplicación
 function App() {
   // Variables de estado para Firebase y la autenticación de usuarios
   const [db, setDb] = useState(null);
@@ -75,7 +74,7 @@ function App() {
   const [isAuthReady, setIsAuthReady] = useState(false);
 
 
-  // State variables for application data
+  // Variables de estado para datos de aplicación
   const [budgets, setBudgets] = useState([]);
   const [personnel, setPersonnel] = useState([]);
 
@@ -94,7 +93,7 @@ function App() {
   const [newPersonnelHoursPerDay, setNewPersonnelHoursPerDay] = useState('');
   const [newPersonnelDaysPerWeek, setNewPersonnelDaysPerWeek] = useState('');
 
-  // State for editing
+  // Estado para editar
   const [editingBudget, setEditingBudget] = useState(null);
   const [editingPersonnel, setEditingPersonnel] = useState(null);
 
@@ -420,25 +419,25 @@ function App() {
     }
   };
 
-  // Calculate required and available hours for capacity planning
+  // Calcular las horas requeridas y disponibles para la planificación de la capacidad
   const calculateCapacity = useCallback(() => {
     const requiredHours = {}; // { 'Engineer': 100, 'Designer': 50 }
     const availableHours = {}; // { 'Engineer': 160, 'Designer': 80 }
 
-    // Calculate required hours from accepted budgets
+    // Calcular las horas requeridas a partir de los presupuestos aceptados
     budgets.filter(b => b.status === 'Accepted').forEach(budget => {
       budget.laborBreakdown.forEach(item => {
         requiredHours[item.type] = (requiredHours[item.type] || 0) + item.hours;
       });
     });
 
-    // Calculate available hours from personnel
+    // Calcular horas disponibles de personal
     personnel.forEach(person => {
       const totalWeeklyHours = person.hoursPerDay * person.daysPerWeek;
       availableHours[person.laborType] = (availableHours[person.laborType] || 0) + totalWeeklyHours;
     });
 
-    // Combine all unique labor types
+    // Combine todos los tipos de mano de obra únicos
     const allLaborTypes = new Set([
       ...Object.keys(requiredHours),
       ...Object.keys(availableHours)
@@ -501,14 +500,27 @@ function App() {
     budgets.forEach((budget) => {
       if (!budget.assignedPersonnel || !budget.laborBreakdown) return;
 
+      // Agrupamos cuántas personas hay asignadas por tipo
+      const laborTypeCount = {};
+
       budget.assignedPersonnel.forEach((personId) => {
-        const matchingBreakdown = budget.laborBreakdown.find(lb => lb.type === workload[personId]?.laborType);
-        if (matchingBreakdown) {
-          workload[personId].assignedHours += Number(matchingBreakdown.hours);
+        const person = personnel.find(p => p.id === personId);
+        if (person) {
+          laborTypeCount[person.laborType] = (laborTypeCount[person.laborType] || 0) + 1;
         }
       });
-    });
+      budget.assignedPersonnel.forEach((personId) => {
+        const person = personnel.find(p => p.id === personId);
+        if (!person) return;
 
+        const matchingBreakdown = budget.laborBreakdown.find(lb => lb.type === person.laborType);
+        if (matchingBreakdown) {
+          const peopleCount = laborTypeCount[person.laborType] || 1;
+          const hoursPerPerson = Number(matchingBreakdown.hours) / peopleCount;
+          workload[personId].assignedHours += hoursPerPerson;
+        }
+      });
+  });
     return Object.values(workload);
   }, [budgets, personnel]);
 
@@ -519,7 +531,7 @@ function App() {
   ? budgets
   : budgets.filter(b => b.category === selectedCategory);
 
-  // Export to CSV
+  // Exportar a CSV
   const exportBudgetsToCSV = () => {
     if (!budgets || budgets.length === 0) {
       showMessageWithTimeout("No hay presupuestos para exportar.");
@@ -589,8 +601,9 @@ function App() {
         </div>
       )}
 
-      <h1 className="text-4xl font-extrabold text-center text-indigo-800 mb-8 drop-shadow-md">
-        📊 Planificador de Recursos y Presupuestos
+      <h1 className="text-4xl font-extrabold text-center text-indigo-800 mb-8 drop-shadow-md flex items-center justify-center gap-4">
+        <img src="/logo.png" alt="Logo Empresa" className="h-12" />
+        Planificador de Recursos y Presupuestos
       </h1>
 
       {/* User ID Display */}
