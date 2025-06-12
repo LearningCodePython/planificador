@@ -32,4 +32,4 @@ yarn-error.log*
 *.log
 
 # Elementos docker no vigilados
-docker-compose.yml
+docker-compose.*

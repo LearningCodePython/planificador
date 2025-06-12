@@ -1,0 +1,51 @@
+# 📊 Planificador de Recursos y Presupuestos
+
+Aplicación web para la gestión de presupuestos y personal, orientada a planificación de carga de trabajo, capacidad y asignación de recursos. Desarrollada en **React** con backend en **Firebase (Firestore + Authentication)**.
+
+---
+
+## 🚀 Funcionalidades principales
+
+- ✨ Gestión de presupuestos: creación, edición, eliminación y duplicado de presupuestos.
+- ✨ Gestión de personal: añadir, editar y eliminar empleados con control de horas disponibles.
+- ✨ Asignación de personal a presupuestos.
+- ✨ Cálculo automático de:
+  - Carga de trabajo global (por roles).
+  - Carga de trabajo individual (por empleado).
+  - Utilización de capacidad.
+  - Sobrecargas y déficit de horas.
+- ✨ Filtrado de presupuestos por categorías (obra, mantenimiento, etc.)
+- ✨ Exportación de presupuestos a CSV.
+- ✨ Interfaz de usuario responsiva y moderna.
+- ✨ Autenticación anónima en Firebase.
+- ✨ Base de datos en tiempo real con Firestore.
+
+---
+
+## 📦 Tecnologías utilizadas
+
+- **React** (JSX, Hooks, Functional Components)
+- **Firebase**
+  - Firestore (Base de datos NoSQL)
+  - Authentication (Acceso anónimo o con token)
+- **Tailwind CSS** (estilos CSS modernos y adaptables)
+- **Blob API** (para exportación CSV)
+- **React State & useEffect/useCallback Hooks**
+
+---
+
+## ⚙ Requisitos
+
+- Node.js >= 16
+- Cuenta de Firebase con Firestore y Authentication habilitados
+
+---
+
+## 🛠 Instalación y configuración
+
+### 1️⃣ Clonar el repositorio
+
+```bash
+git clone git@github.com:LearningCodePython/planificador.git
+cd planificador
+
