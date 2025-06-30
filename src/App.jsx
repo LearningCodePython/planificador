@@ -1,20 +1,80 @@
-
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
 import React, { useState, useEffect, useCallback } from 'react';
 import './index.css';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 
-// Define the main App component
+// Formulario de login
+function AuthForm({ auth }) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isRegister, setIsRegister] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      if (isRegister) {
+        await createUserWithEmailAndPassword(auth, email, password);
+      } else {
+        await signInWithEmailAndPassword(auth, email, password);
+      }
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  return (
+    <div className="max-w-sm mx-auto mt-20 bg-white p-6 rounded-lg shadow-lg border border-blue-200">
+      <h2 className="text-xl font-bold text-center mb-4">{isRegister ? "Registro" : "Iniciar sesión"}</h2>
+      {error && <p className="text-red-500 text-sm">{error}</p>}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <input
+            type="email"
+            placeholder="Correo electrónico"
+            className="w-full p-2 border rounded"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <input
+            type="password"
+            placeholder="Contraseña"
+            className="w-full p-2 border rounded"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </div>
+        <button type="submit" className="w-full bg-blue-600 text-white p-2 rounded">
+          {isRegister ? "Registrarse" : "Iniciar sesión"}
+        </button>
+      </form>
+      <p className="mt-4 text-center text-sm">
+        {isRegister ? "¿Ya tienes cuenta?" : "¿No tienes cuenta?"}{" "}
+        <button className="text-blue-500 underline" onClick={() => setIsRegister(!isRegister)}>
+          {isRegister ? "Iniciar sesión" : "Registrarse"}
+        </button>
+      </p>
+    </div>
+  );
+}
+
+
+// Es el componente principal de la aplicación
 function App() {
-  // State variables for Firebase and user authentication
+  // Variables de estado para Firebase y la autenticación de usuarios
   const [db, setDb] = useState(null);
   const [auth, setAuth] = useState(null);
   const [userId, setUserId] = useState(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
 
 
-  // State variables for application data
+  // Variables de estado para datos de aplicación
   const [budgets, setBudgets] = useState([]);
   const [personnel, setPersonnel] = useState([]);
 
@@ -33,7 +93,7 @@ function App() {
   const [newPersonnelHoursPerDay, setNewPersonnelHoursPerDay] = useState('');
   const [newPersonnelDaysPerWeek, setNewPersonnelDaysPerWeek] = useState('');
 
-  // State for editing
+  // Estado para editar
   const [editingBudget, setEditingBudget] = useState(null);
   const [editingPersonnel, setEditingPersonnel] = useState(null);
 
@@ -87,21 +147,15 @@ function App() {
       setDb(firestore);
       setAuth(authInstance);
 
-      // Listen for authentication state changes
+      // Escuche los cambios del estado de autenticación
       const unsubscribe = onAuthStateChanged(authInstance, async (user) => {
         if (user) {
           // User is signed in, set userId
           setUserId(user.uid);
         } else {
-          // En un entorno real (fuera de Canvas), inicia sesión anónimamente si no hay token
-          try {
-            await signInAnonymously(authInstance);
-          } catch (error) {
-            console.error("Error al iniciar sesión anónimamente:", error);
-            showMessageWithTimeout(`Error al iniciar sesión: ${error.message}`);
-          }
+          setUserId(null);
         }
-        setIsAuthReady(true); // Authentication state is ready
+          setIsAuthReady(true); // Authentication state is ready
       });
 
       // Clean up the listener on component unmount
@@ -365,25 +419,25 @@ function App() {
     }
   };
 
-  // Calculate required and available hours for capacity planning
+  // Calcular las horas requeridas y disponibles para la planificación de la capacidad
   const calculateCapacity = useCallback(() => {
     const requiredHours = {}; // { 'Engineer': 100, 'Designer': 50 }
     const availableHours = {}; // { 'Engineer': 160, 'Designer': 80 }
 
-    // Calculate required hours from accepted budgets
+    // Calcular las horas requeridas a partir de los presupuestos aceptados
     budgets.filter(b => b.status === 'Accepted').forEach(budget => {
       budget.laborBreakdown.forEach(item => {
         requiredHours[item.type] = (requiredHours[item.type] || 0) + item.hours;
       });
     });
 
-    // Calculate available hours from personnel
+    // Calcular horas disponibles de personal
     personnel.forEach(person => {
       const totalWeeklyHours = person.hoursPerDay * person.daysPerWeek;
       availableHours[person.laborType] = (availableHours[person.laborType] || 0) + totalWeeklyHours;
     });
 
-    // Combine all unique labor types
+    // Combine todos los tipos de mano de obra únicos
     const allLaborTypes = new Set([
       ...Object.keys(requiredHours),
       ...Object.keys(availableHours)
@@ -446,25 +500,102 @@ function App() {
     budgets.forEach((budget) => {
       if (!budget.assignedPersonnel || !budget.laborBreakdown) return;
 
+      // Agrupamos cuántas personas hay asignadas por tipo
+      const laborTypeCount = {};
+
       budget.assignedPersonnel.forEach((personId) => {
-        const matchingBreakdown = budget.laborBreakdown.find(lb => lb.type === workload[personId]?.laborType);
-        if (matchingBreakdown) {
-          workload[personId].assignedHours += Number(matchingBreakdown.hours);
+        const person = personnel.find(p => p.id === personId);
+        if (person) {
+          laborTypeCount[person.laborType] = (laborTypeCount[person.laborType] || 0) + 1;
         }
       });
-    });
+      budget.assignedPersonnel.forEach((personId) => {
+        const person = personnel.find(p => p.id === personId);
+        if (!person) return;
 
+        const matchingBreakdown = budget.laborBreakdown.find(lb => lb.type === person.laborType);
+        if (matchingBreakdown) {
+          const peopleCount = laborTypeCount[person.laborType] || 1;
+          const hoursPerPerson = Number(matchingBreakdown.hours) / peopleCount;
+          workload[personId].assignedHours += hoursPerPerson;
+        }
+      });
+  });
     return Object.values(workload);
   }, [budgets, personnel]);
 
   const workloadSummary = calculateWorkloadPerPerson();
+
+  const estimateDurationInDays = (budget) => {
+    if (!budget || !budget.laborBreakdown || !budget.assignedPersonnel) return 0;
+
+  const assignedPeopleByType = {};
+  budget.assignedPersonnel.forEach(personId => {
+    const person = personnel.find(p => p.id === personId);
+    if (person) {
+      if (!assignedPeopleByType[person.laborType]) {
+        assignedPeopleByType[person.laborType] = [];
+      }
+      assignedPeopleByType[person.laborType].push(person);
+    }
+  });
+
+  const daysByType = budget.laborBreakdown.map(item => {
+    const people = assignedPeopleByType[item.type] || [];
+    const totalWeeklyHours = people.reduce((sum, p) => sum + (p.hoursPerDay * p.daysPerWeek), 0);
+
+    if (totalWeeklyHours === 0) return 0;
+
+    // Total de horas necesarias / horas semanales disponibles
+    const totalHours = item.hours;
+    const weeksNeeded = totalHours / totalWeeklyHours;
+
+    // Ahora convertimos semanas a días laborales reales (lunes a viernes)
+    const start = new Date(budget.startDate);
+    let currentDate = new Date(start);
+    let laborDays = 0;
+    let accumulatedWeeks = 0;
+
+    while (accumulatedWeeks < weeksNeeded) {
+      const day = currentDate.getDay();
+      if (day >= 1 && day <= 5) { // lunes a viernes
+        laborDays++;
+        accumulatedWeeks = laborDays / 5;
+      }
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    return laborDays;
+  });
+
+  return Math.max(...daysByType);
+  };
+
+  const estimateEndDate = (budget) => {
+  const estimatedDays = estimateDurationInDays(budget);
+  if (!budget.startDate || estimatedDays === 0) return null;
+
+  const start = new Date(budget.startDate);
+  let daysAdded = 0;
+  let current = new Date(start);
+
+  while (daysAdded < estimatedDays) {
+    current.setDate(current.getDate() + 1);
+    const day = current.getDay();
+    if (day !== 0 && day !== 6) {
+      daysAdded++;
+    }
+  }
+
+  return current.toISOString().split("T")[0]; // Formato YYYY-MM-DD
+  };
 
   // Línea para el filtrado de presupuestos
   const filteredBudgets = selectedCategory === 'Todas'
   ? budgets
   : budgets.filter(b => b.category === selectedCategory);
 
-  // Export to CSV
+  // Exportar a CSV
   const exportBudgetsToCSV = () => {
     if (!budgets || budgets.length === 0) {
       showMessageWithTimeout("No hay presupuestos para exportar.");
@@ -515,6 +646,10 @@ function App() {
   // Render the main application UI
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 font-inter text-gray-800">
+      {isAuthReady && !userId ? (
+        <AuthForm auth={auth} />
+      ) : (
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 font-inter text-gray-800">
       {/* Message Modal */}
       {showMessage && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -530,8 +665,9 @@ function App() {
         </div>
       )}
 
-      <h1 className="text-4xl font-extrabold text-center text-indigo-800 mb-8 drop-shadow-md">
-        📊 Planificador de Recursos y Presupuestos
+      <h1 className="text-4xl font-extrabold text-center text-indigo-800 mb-8 drop-shadow-md flex items-center justify-center gap-4">
+        <img src="/logo.png" alt="Logo Empresa" className="h-12" />
+        Planificador de Recursos y Presupuestos
       </h1>
 
       {/* User ID Display */}
@@ -767,6 +903,12 @@ function App() {
                       </span>
                     ))}
                   </div>
+                  <p className="text-sm text-indigo-700 font-semibold mt-2">
+                    ⏱️ Duración estimada: {estimateDurationInDays(budget)} días laborales
+                  </p>
+                  <p className="text-sm text-green-700 font-semibold">
+                    📅 Fecha estimada de fin: {estimateEndDate(budget) || "No disponible"}
+                  </p>
                   <div className="mt-4 flex flex-col sm:flex-row gap-2">
                     <button
                       onClick={() => handleEditBudget(budget)}
@@ -979,6 +1121,8 @@ function App() {
         )}
       </div>
 
+        </div>
+      )} 
     </div>
   );
 }
