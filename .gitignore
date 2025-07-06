@@ -33,3 +33,6 @@ yarn-error.log*
 
 # Elementos docker no vigilados
 docker-compose.*
+
+#Carpeta de pruebas
+/test

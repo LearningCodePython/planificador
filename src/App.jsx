@@ -3,9 +3,36 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
 import React, { useState, useEffect, useCallback } from 'react';
+import {BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer} from 'recharts';
 import './index.css';
 
-// Define the main App component
+// Nueva función para calcular semanas de ocupación
+function calcularSemanasOcupacionConPorcentaje(startDate, totalHours, weeklyCapacity) {
+  const semanas = [];
+  let remainingHours = totalHours;
+  let currentDate = new Date(startDate);
+
+  while (remainingHours > 0) {
+    const semanaInicio = currentDate.toISOString().split('T')[0];
+    const horas = Math.min(weeklyCapacity, remainingHours);
+    const porcentaje = Math.round((horas / weeklyCapacity) * 100);
+
+    semanas.push({
+      semanaInicio,
+      horas,
+      porcentaje
+    });
+
+    remainingHours -= horas;
+
+    // Avanzar a la siguiente semana (sumando 7 días)
+    currentDate.setDate(currentDate.getDate() + 7);
+  }
+
+  return semanas;
+}
+
+// Define el componelte principal App.
 function App() {
   // State variables for Firebase and user authentication
   const [db, setDb] = useState(null);
@@ -458,6 +485,31 @@ function App() {
   }, [budgets, personnel]);
 
   const workloadSummary = calculateWorkloadPerPerson();
+
+  const weeklyOccupationData = personnel.map(person => {
+    const matchedWorkload = workloadSummary.find(p => p.name === person.name);
+    if (!matchedWorkload) return null;
+
+    const totalHoras = matchedWorkload.assignedHours;
+    const horasPorSemana = person.hoursPerDay * person.daysPerWeek;
+
+    // Obtener fechas de inicio de los presupuestos asignados
+    const fechas = budgets
+      .filter(b => (b.assignedPersonnel || []).includes(person.id))
+      .map(b => new Date(b.startDate));
+    if (fechas.length === 0) return null;
+
+    const fechaInicio = fechas.reduce((a, b) => (a < b ? a : b));
+    const semanas = calcularSemanasOcupacionConPorcentaje(fechaInicio.toISOString(), totalHoras, horasPorSemana);
+
+    const dataPoint = { name: person.name };
+    semanas.forEach(semana => {
+      dataPoint[semana.semanaInicio] = semana.horas;
+    });
+
+    return dataPoint;
+  }).filter(Boolean);
+
 
   // Línea para el filtrado de presupuestos
   const filteredBudgets = selectedCategory === 'Todas'
@@ -950,7 +1002,6 @@ function App() {
         <h2 className="text-2xl font-bold text-green-700 mb-6 border-b pb-3 border-green-200">
           📋 Carga de Trabajo por Persona
         </h2>
-
         {workloadSummary.length === 0 ? (
           <p className="text-gray-500">No hay datos suficientes para calcular la carga.</p>
         ) : (
@@ -973,12 +1024,67 @@ function App() {
                     style={{ width: `${Math.min((person.assignedHours / person.availableHours) * 100, 100)}%` }}
                   ></div>
                 </div>
+              {/* Nueva sección de semanas ocupadas */}
+                <div className="mt-3 text-sm text-gray-800">
+                  <span className="font-semibold">Semanas ocupadas:</span>
+                  <ul className="list-disc list-inside mt-1">
+                    {(() => {
+                      const persona = personnel.find(p => p.name === person.name);
+                      if (!persona) return null;
+
+                      // Sumar todas las horas asignadas a esta persona
+                      const totalHoras = person.assignedHours;
+                      const horasPorSemana = persona.hoursPerDay * persona.daysPerWeek;
+
+                      // Encontrar la primera fecha de inicio entre los presupuestos asignados
+                      const fechas = budgets
+                        .filter(b => (b.assignedPersonnel || []).includes(persona.id))
+                        .map(b => new Date(b.startDate));
+                      if (fechas.length === 0) return null;
+                      const fechaInicioMasTemprana = fechas.reduce((a, b) => (a < b ? a : b));
+                      const semanas = calcularSemanasOcupacionConPorcentaje(fechaInicioMasTemprana.toISOString(), totalHoras, horasPorSemana);
+                      return semanas.map((s, i) => (
+                        <li key={i}>
+                          Desde <strong>{s.semanaInicio}</strong>: {s.horas}h (
+                          {s.porcentaje}% ocupado)
+                        </li>
+                      ));
+                    })()}
+                  </ul>
+                </div>
               </div>
             ))}
           </div>
         )}
       </div>
 
+      <div className="mt-8 bg-white p-6 rounded-xl shadow-lg border border-purple-200">
+        <h2 className="text-2xl font-bold text-purple-700 mb-6 border-b pb-3 border-purple-200">
+          📅 Ocupación Semanal del Personal (Gráfico)
+        </h2>
+
+        {weeklyOccupationData.length === 0 ? (
+          <p className="text-gray-500">No hay datos suficientes para mostrar el gráfico.</p>
+        ) : (
+          <ResponsiveContainer width="100%" height={400}>
+            <BarChart
+              data={weeklyOccupationData}
+              margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis label={{ value: 'Horas', angle: -90, position: 'insideLeft' }} />
+              <Tooltip />
+              <Legend />
+              {Object.keys(weeklyOccupationData[0])
+                .filter(key => key !== 'name')
+                .map((weekKey, idx) => (
+                  <Bar key={weekKey} dataKey={weekKey} stackId="a" fill={`hsl(${(idx * 70) % 360}, 70%, 60%)`} />
+              ))}
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+      </div>
     </div>
   );
 }
