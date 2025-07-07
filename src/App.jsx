@@ -6,6 +6,64 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer} from 'recharts';
 import './index.css';
 
+function AuthForm({ auth }) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isRegister, setIsRegister] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      if (isRegister) {
+        await createUserWithEmailAndPassword(auth, email, password);
+      } else {
+        await signInWithEmailAndPassword(auth, email, password);
+      }
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  return (
+    <div className="max-w-sm mx-auto mt-20 bg-white p-6 rounded-lg shadow-lg border border-blue-200">
+      <h2 className="text-xl font-bold text-center mb-4">{isRegister ? "Registro" : "Iniciar sesión"}</h2>
+      {error && <p className="text-red-500 text-sm">{error}</p>}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <input
+            type="email"
+            placeholder="Correo electrónico"
+            className="w-full p-2 border rounded"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <input
+            type="password"
+            placeholder="Contraseña"
+            className="w-full p-2 border rounded"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </div>
+        <button type="submit" className="w-full bg-blue-600 text-white p-2 rounded">
+          {isRegister ? "Registrarse" : "Iniciar sesión"}
+        </button>
+      </form>
+      <p className="mt-4 text-center text-sm">
+        {isRegister ? "¿Ya tienes cuenta?" : "¿No tienes cuenta?"}{" "}
+        <button className="text-blue-500 underline" onClick={() => setIsRegister(!isRegister)}>
+          {isRegister ? "Iniciar sesión" : "Registrarse"}
+        </button>
+      </p>
+    </div>
+  );
+}
+
 // Nueva función para calcular semanas de ocupación
 function calcularSemanasOcupacionConPorcentaje(startDate, totalHours, weeklyCapacity) {
   const semanas = [];
