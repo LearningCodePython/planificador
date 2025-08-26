@@ -1,96 +1,68 @@
 
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
-import React, { useState, useEffect, useCallback } from 'react';
+import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, } from 'firebase/firestore';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer} from 'recharts';
 import './index.css';
 
-function AuthForm({ auth }) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isRegister, setIsRegister] = useState(false);
-  const [error, setError] = useState('');
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      if (isRegister) {
-        await createUserWithEmailAndPassword(auth, email, password);
-      } else {
-        await signInWithEmailAndPassword(auth, email, password);
-      }
-    } catch (err) {
-      setError(err.message);
-    }
-  };
-
-  return (
-    <div className="max-w-sm mx-auto mt-20 bg-white p-6 rounded-lg shadow-lg border border-blue-200">
-      <h2 className="text-xl font-bold text-center mb-4">{isRegister ? "Registro" : "Iniciar sesión"}</h2>
-      {error && <p className="text-red-500 text-sm">{error}</p>}
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <input
-            type="email"
-            placeholder="Correo electrónico"
-            className="w-full p-2 border rounded"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <input
-            type="password"
-            placeholder="Contraseña"
-            className="w-full p-2 border rounded"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
-        <button type="submit" className="w-full bg-blue-600 text-white p-2 rounded">
-          {isRegister ? "Registrarse" : "Iniciar sesión"}
-        </button>
-      </form>
-      <p className="mt-4 text-center text-sm">
-        {isRegister ? "¿Ya tienes cuenta?" : "¿No tienes cuenta?"}{" "}
-        <button className="text-blue-500 underline" onClick={() => setIsRegister(!isRegister)}>
-          {isRegister ? "Iniciar sesión" : "Registrarse"}
-        </button>
-      </p>
-    </div>
-  );
-}
-
 // Nueva función para calcular semanas de ocupación
-function calcularSemanasOcupacionConPorcentaje(startDate, totalHours, weeklyCapacity) {
+const calcularSemanasOcupacion = (startDateStr, totalHours, hoursPerWeek) => {
   const semanas = [];
-  let remainingHours = totalHours;
-  let currentDate = new Date(startDate);
+  let horasRestantes = totalHours;
+  let currentDate = new Date(startDateStr);
 
-  while (remainingHours > 0) {
-    const semanaInicio = currentDate.toISOString().split('T')[0];
-    const horas = Math.min(weeklyCapacity, remainingHours);
-    const porcentaje = Math.round((horas / weeklyCapacity) * 100);
+  // Ajustar al próximo lunes si no empieza en lunes
+  while (currentDate.getDay() !== 1) {
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
 
+  // Asignar horas por semana
+  while (horasRestantes > 0) {
+    const horasAsignadas = Math.min(hoursPerWeek, horasRestantes);
     semanas.push({
-      semanaInicio,
-      horas,
-      porcentaje
+      semanaInicio: currentDate.toISOString().split("T")[0],
+      horas: horasAsignadas,
     });
-
-    remainingHours -= horas;
-
-    // Avanzar a la siguiente semana (sumando 7 días)
-    currentDate.setDate(currentDate.getDate() + 7);
+    horasRestantes -= horasAsignadas;
+    currentDate.setDate(currentDate.getDate() + 7); // Ir a la siguiente semana
   }
 
   return semanas;
-}
+};
 
-// Define el componelte principal App.
+// Nuevas funciones
+// Devuelve YYYY-MM para un Date
+const ym = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+
+// Lista de meses YYYY-MM entre dos fechas (incluyendo inicio y fin)
+const monthsBetween = (startStr, endStr) => {
+  const res = [];
+  const start = new Date(startStr);
+  const end = new Date(endStr);
+  const cur = new Date(start.getFullYear(), start.getMonth(), 1);
+  const endMarker = new Date(end.getFullYear(), end.getMonth(), 1);
+  while (cur <= endMarker) {
+    res.push(ym(cur));
+    cur.setMonth(cur.getMonth() + 1);
+  }
+  return res;
+};
+
+// Reparte horas de un presupuesto de forma uniforme por mes
+// devuelve { 'YYYY-MM': horasDelMes, ... }
+const distributeHoursPerMonth = (startStr, endStr, totalHours) => {
+  const months = monthsBetween(startStr, endStr);
+  if (months.length === 0) return {};
+  const perMonth = totalHours / months.length;
+  return months.reduce((acc, m) => (acc[m] = (acc[m] || 0) + perMonth, acc), {});
+};
+
+// Horas disponibles por persona al mes (aprox 4.33 semanas/mes)
+const monthlyCapacityForPerson = (hoursPerDay, daysPerWeek) =>
+  (Number(hoursPerDay) || 0) * (Number(daysPerWeek) || 0) * 4.33;
+
+// Define el componente principal App.
 function App() {
   // State variables for Firebase and user authentication
   const [db, setDb] = useState(null);
@@ -138,7 +110,7 @@ function App() {
     setNewBudgetStartDate('');
     setNewBudgetEndDate('');
     setNewBudgetStatus('Accepted');
-    setNewBudgetCategory('')
+    setNewBudgetCategory('');
     setAssignedPersonnelIds([]);
   };
 
@@ -321,6 +293,7 @@ function App() {
       setNewBudgetStatus('Accepted');
       setEditingBudget(null);
       setNewBudgetCategory('');
+      setAssignedPersonnelIds([]);
     } catch (e) {
       console.error("Error adding/updating budget: ", e);
       showMessageWithTimeout(`Error al guardar presupuesto: ${e.message}`);
@@ -450,49 +423,55 @@ function App() {
     }
   };
 
-  // Calculate required and available hours for capacity planning
+  // Calculate required and available hours for capacity planning (MENSUAL, PROMEDIO)
   const calculateCapacity = useCallback(() => {
-    const requiredHours = {}; // { 'Engineer': 100, 'Designer': 50 }
-    const availableHours = {}; // { 'Engineer': 160, 'Designer': 80 }
+    const requiredByRoleTotal = {}; // horas totales sumadas en todos los meses
+    const monthsByRole = {};        // Set de meses activos por rol
 
-    // Calculate required hours from accepted budgets
-    budgets.filter(b => b.status === 'Accepted').forEach(budget => {
-      budget.laborBreakdown.forEach(item => {
-        requiredHours[item.type] = (requiredHours[item.type] || 0) + item.hours;
+    // Requerido: repartir horas de cada presupuesto aceptado por mes y acumular
+    budgets
+      .filter(b => b.status === 'Accepted' && b.startDate && b.endDate)
+      .forEach(budget => {
+        (budget.laborBreakdown || []).forEach(item => {
+          const dist = distributeHoursPerMonth(budget.startDate, budget.endDate, Number(item.hours) || 0);
+          Object.entries(dist).forEach(([month, hrs]) => {
+            requiredByRoleTotal[item.type] = (requiredByRoleTotal[item.type] || 0) + hrs;
+            monthsByRole[item.type] ||= new Set();
+            monthsByRole[item.type].add(month);
+          });
+        });
       });
-    });
 
-    // Calculate available hours from personnel
+    // Disponible: capacidad mensual por rol (constante por mes)
+    const availableMonthly = {};
     personnel.forEach(person => {
-      const totalWeeklyHours = person.hoursPerDay * person.daysPerWeek;
-      availableHours[person.laborType] = (availableHours[person.laborType] || 0) + totalWeeklyHours;
+      const capMes = monthlyCapacityForPerson(person.hoursPerDay, person.daysPerWeek);
+      availableMonthly[person.laborType] = (availableMonthly[person.laborType] || 0) + capMes;
     });
 
-    // Combine all unique labor types
-    const allLaborTypes = new Set([
-      ...Object.keys(requiredHours),
-      ...Object.keys(availableHours)
-    ]);
+    // Combinar roles
+    const allLaborTypes = new Set([...Object.keys(requiredByRoleTotal), ...Object.keys(availableMonthly)]);
 
-    const capacityData = Array.from(allLaborTypes).map(type => {
-      const req = requiredHours[type] || 0;
-      const avail = availableHours[type] || 0;
-      const deficit = req > avail ? req - avail : 0;
-      const surplus = avail > req ? avail - req : 0;
-      const utilization = avail > 0 ? (req / avail) * 100 : 0;
+    return Array.from(allLaborTypes).map(type => {
+      const monthsCount = monthsByRole[type]?.size || 0;
+      const reqAvgPerMonth = monthsCount > 0 ? (requiredByRoleTotal[type] / monthsCount) : 0;
+      const avail = availableMonthly[type] || 0;
+
+      const deficit = reqAvgPerMonth > avail ? reqAvgPerMonth - avail : 0;
+      const surplus = avail > reqAvgPerMonth ? avail - reqAvgPerMonth : 0;
+      const utilization = avail > 0 ? (reqAvgPerMonth / avail) * 100 : 0;
 
       return {
         laborType: type,
-        required: req,
-        available: avail,
-        deficit: deficit,
-        surplus: surplus,
-        utilization: utilization.toFixed(2) // Percentage
+        required: Math.round(reqAvgPerMonth),
+        available: Math.round(avail),
+        deficit: Math.round(deficit),
+        surplus: Math.round(surplus),
+        utilization: Number(utilization.toFixed(2)),
       };
     });
-
-    return capacityData;
   }, [budgets, personnel]);
+
 
   const capacitySummary = calculateCapacity();
 
@@ -503,7 +482,7 @@ function App() {
       .map(budget => ({
         id: budget.id,
         name: budget.name,
-        hours: budget.laborBreakdown.reduce((sum, item) => {
+        hours: (budget.laborBreakdown || []).reduce((sum, item) => {
           return item.type === person.laborType ? sum + item.hours : sum;
         }, 0)
       }));
@@ -518,61 +497,131 @@ function App() {
   const calculateWorkloadPerPerson = useCallback(() => {
     const workload = {};
 
+    // Inicializar disponibilidad mensual por persona
     personnel.forEach((person) => {
-      const availableHours = person.hoursPerDay * person.daysPerWeek;
+      const availableHours = monthlyCapacityForPerson(person.hoursPerDay, person.daysPerWeek);
       workload[person.id] = {
+        id: person.id,
         name: person.name,
         laborType: person.laborType,
-        assignedHours: 0,
-        availableHours: availableHours,
+        assignedHours: 0,     // h/mes (promedio)
+        availableHours: availableHours, // h/mes
       };
     });
 
+    // Para cada presupuesto, repartir horas de ese rol entre los meses que dura
     budgets.forEach((budget) => {
-      if (!budget.assignedPersonnel || !budget.laborBreakdown) return;
+      if (!budget.assignedPersonnel || !(budget.laborBreakdown && budget.startDate && budget.endDate)) return;
 
       budget.assignedPersonnel.forEach((personId) => {
-        const matchingBreakdown = budget.laborBreakdown.find(lb => lb.type === workload[personId]?.laborType);
-        if (matchingBreakdown) {
-          workload[personId].assignedHours += Number(matchingBreakdown.hours);
-        }
+        if (!workload[personId]) return; // persona borrada o no cargada
+
+        const personRole = workload[personId].laborType;
+        const lb = (budget.laborBreakdown || []).find(x => x.type === personRole);
+        if (!lb) return;
+
+        const months = monthsBetween(budget.startDate, budget.endDate);
+        const hoursPerMonth = months.length > 0 ? Number(lb.hours || 0) / months.length : 0;
+
+        workload[personId].assignedHours += hoursPerMonth;
       });
     });
 
-    return Object.values(workload);
+    // Redondear para UI
+    return Object.values(workload).map(w => ({
+      ...w,
+      assignedHours: Math.round(w.assignedHours),
+      availableHours: Math.round(w.availableHours),
+    }));
   }, [budgets, personnel]);
+
 
   const workloadSummary = calculateWorkloadPerPerson();
 
-  const weeklyOccupationData = personnel.map(person => {
-    const matchedWorkload = workloadSummary.find(p => p.name === person.name);
-    if (!matchedWorkload) return null;
+  const monthlyOccupationData = personnel.map(person => {
+    // horas asignadas por mes a esta persona (sumando presupuestos donde participa)
+    const perMonth = {}; // { 'YYYY-MM': horas }
+      budgets
+        .filter(b => (b.assignedPersonnel || []).includes(person.id))
+        .forEach(b => {
+          // horas de este rol en este presupuesto
+          const lb = (b.laborBreakdown || []).find(x => x.type === person.laborType);
+          if (!lb) return;
+          const dist = distributeHoursPerMonth(b.startDate, b.endDate, Number(lb.hours) || 0);
+          Object.entries(dist).forEach(([month, hrs]) => {
+            perMonth[month] = (perMonth[month] || 0) + hrs;
+          });
+        });
+    if (Object.keys(perMonth).length === 0) return null;
 
-    const totalHoras = matchedWorkload.assignedHours;
-    const horasPorSemana = person.hoursPerDay * person.daysPerWeek;
-
-    // Obtener fechas de inicio de los presupuestos asignados
-    const fechas = budgets
-      .filter(b => (b.assignedPersonnel || []).includes(person.id))
-      .map(b => new Date(b.startDate));
-    if (fechas.length === 0) return null;
-
-    const fechaInicio = fechas.reduce((a, b) => (a < b ? a : b));
-    const semanas = calcularSemanasOcupacionConPorcentaje(fechaInicio.toISOString(), totalHoras, horasPorSemana);
-
-    const dataPoint = { name: person.name };
-    semanas.forEach(semana => {
-      dataPoint[semana.semanaInicio] = semana.horas;
-    });
-
-    return dataPoint;
+      // Convertimos al formato de Recharts: { name: 'Persona', 'YYYY-MM': horas, ... }
+    return { name: person.name, ...perMonth };
   }).filter(Boolean);
 
+  // Unir todas las claves de meses presentes en monthlyOccupationData
+  const allMonthKeys = useMemo(() => {
+    const s = new Set();
+    monthlyOccupationData.forEach(row => {
+      Object.keys(row).forEach(k => {
+        if (k !== 'name') s.add(k); // "name" es la etiqueta del eje X
+      });
+    });
+    return Array.from(s).sort(); // YYYY-MM en orden
+  }, [monthlyOccupationData]);
 
   // Línea para el filtrado de presupuestos
   const filteredBudgets = selectedCategory === 'Todas'
   ? budgets
   : budgets.filter(b => b.category === selectedCategory);
+
+  // Calcula fin estimado según horas requeridas y capacidad semanal del personal asignado
+  function computeProjectedFinishDate(budget, allPersonnel = []) {
+    const { startDate, laborBreakdown = [], assignedPersonnel = [] } = budget;
+    if (!startDate || laborBreakdown.length === 0 || assignedPersonnel.length === 0) {
+      return null; // No hay datos suficientes
+    }
+
+    // Capacidad semanal por rol basada en personal asignado
+    const weeklyCapacityByRole = {};
+    assignedPersonnel.forEach(pid => {
+      const p = allPersonnel.find(pp => pp.id === pid);
+      if (!p) return;
+      const cap = (Number(p.hoursPerDay) || 0) * (Number(p.daysPerWeek) || 0);
+      weeklyCapacityByRole[p.laborType] = (weeklyCapacityByRole[p.laborType] || 0) + cap;
+    });
+
+    // Para cada rol requerido, cuántas semanas hacen falta
+    let maxWeeks = 0;
+    for (const item of laborBreakdown) {
+      const role = item.type;
+      const hours = Number(item.hours) || 0;
+      const weeklyCap = weeklyCapacityByRole[role] || 0;
+      if (hours > 0 && weeklyCap === 0) {
+        return { feasible: false, missingRole: role };
+      }
+      const weeksForRole = weeklyCap > 0 ? Math.ceil(hours / weeklyCap) : 0;
+      if (weeksForRole > maxWeeks) maxWeeks = weeksForRole;
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(start);
+    end.setDate(start.getDate() + maxWeeks * 7);
+    const endStr = end.toISOString().split('T')[0];
+
+    return { feasible: true, endDate: endStr, weeks: maxWeeks };
+  }
+
+  // 🔮 Estimación de fecha de fin en el formulario según recursos asignados actuales
+  const projectedFromForm = useMemo(() => {
+    if (!newBudgetStartDate) return null;
+    const cleanedBreakdown = newBudgetLaborBreakdown.filter(i => i.type && i.hours);
+    const tempBudget = {
+      startDate: newBudgetStartDate,
+      laborBreakdown: cleanedBreakdown,
+      assignedPersonnel: assignedPersonnelIds
+    };
+    return computeProjectedFinishDate(tempBudget, personnel);
+  }, [newBudgetStartDate, newBudgetLaborBreakdown, assignedPersonnelIds, personnel]);
 
   // Export to CSV
   const exportBudgetsToCSV = () => {
@@ -760,7 +809,9 @@ function App() {
               />
             </div>
             <div>
-              <label htmlFor="budgetEndDate" className="block text-sm font-medium text-gray-700">Fecha de Finalización Deseada</label>
+              <label htmlFor="budgetEndDate" className="block text-sm font-medium text-gray-700">
+                Fecha de Finalización Deseada
+              </label>
               <input
                 type="date"
                 id="budgetEndDate"
@@ -768,7 +819,27 @@ function App() {
                 value={newBudgetEndDate}
                 onChange={(e) => setNewBudgetEndDate(e.target.value)}
               />
+
+              {/* 👇 Campo informativo: Fin estimado con recursos asignados */}
+              <div className="mt-1 text-xs">
+                {projectedFromForm ? (
+                  projectedFromForm.feasible ? (
+                    <span className="text-emerald-700">
+                      Fin estimado con recursos asignados: <strong>{projectedFromForm.endDate}</strong> ({projectedFromForm.weeks} semanas)
+                    </span>
+                  ) : (
+                    <span className="text-red-600">
+                      No es posible estimar: falta capacidad del rol <strong>{projectedFromForm.missingRole}</strong>.
+                    </span>
+                  )
+                ) : (
+                  <span className="text-gray-500">
+                    Completa fecha de inicio, desglose y (opcional) personal asignado para estimar fin.
+                  </span>
+                )}
+              </div>
             </div>
+
             <div>
               <label htmlFor="budgetStatus" className="block text-sm font-medium text-gray-700">Estado</label>
               <select
@@ -871,7 +942,7 @@ function App() {
 
                   <div className="mt-2 text-sm text-gray-700">
                     <span className="font-medium">Desglose:</span>
-                    {budget.laborBreakdown.map((item, idx) => (
+                    {(budget.laborBreakdown || []).map((item, idx) => (
                       <span key={idx} className="ml-2 bg-blue-200 px-2 py-1 rounded-full text-xs font-semibold">
                         {item.type}: {item.hours}h
                       </span>
@@ -898,14 +969,14 @@ function App() {
                     </button>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        )}
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
-
-        {/* Personnel Management Section */}
-        <div className="bg-white p-6 rounded-xl shadow-lg border border-blue-200">
+      {/* Personnel Management Section */}
+      <div className="bg-white p-6 rounded-xl shadow-lg border border-blue-200">
           <h2 className="text-2xl font-bold text-indigo-700 mb-6 border-b pb-3 border-indigo-200">
             👥 Gestión de Personal
           </h2>
@@ -1018,44 +1089,8 @@ function App() {
               ))}
             </div>
           )}
-        </div>
       </div>
-
       {/* Capacity Planning Section */}
-      <div className="mt-8 bg-white p-6 rounded-xl shadow-lg border border-blue-200">
-        <h2 className="text-2xl font-bold text-indigo-700 mb-6 border-b pb-3 border-indigo-200">
-          📈 Planificación de Capacidad (Horas Semanales)
-        </h2>
-        {capacitySummary.length === 0 ? (
-          <p className="text-gray-500">Añada presupuestos y personal para ver la planificación de capacidad.</p>
-        ) : (
-          <div className="space-y-4">
-            {capacitySummary.map((data, index) => (
-              <div key={index} className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-lg shadow-md border border-blue-200">
-                <h3 className="text-xl font-semibold text-blue-800">{data.laborType}</h3>
-                <p className="text-sm text-gray-700">Horas Requeridas (Presupuestos Aceptados): <span className="font-bold">{data.required}h</span></p>
-                <p className="text-sm text-gray-700">Horas Disponibles (Personal Actual): <span className="font-bold">{data.available}h</span></p>
-                {data.deficit > 0 ? (
-                  <p className="text-red-600 font-bold text-sm">
-                    DÉFICIT: Necesitas {data.deficit} horas/semana adicionales.
-                  </p>
-                ) : (
-                  <p className="text-green-600 font-bold text-sm">
-                    SOBRANTE: Tienes {data.surplus} horas/semana disponibles.
-                  </p>
-                )}
-                <p className="text-sm text-gray-700">Utilización de Capacidad: <span className="font-bold">{data.utilization}%</span></p>
-                <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
-                  <div
-                    className={`h-2.5 rounded-full ${data.utilization > 100 ? 'bg-red-500' : 'bg-green-500'}`}
-                    style={{ width: `${Math.min(data.utilization, 100)}%` }}
-                  ></div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
       <div className="mt-8 bg-white p-6 rounded-xl shadow-lg border border-green-200">
         <h2 className="text-2xl font-bold text-green-700 mb-6 border-b pb-3 border-green-200">
           📋 Carga de Trabajo por Persona
@@ -1064,80 +1099,87 @@ function App() {
           <p className="text-gray-500">No hay datos suficientes para calcular la carga.</p>
         ) : (
           <div className="space-y-4">
-            {workloadSummary.map((person, index) => (
-              <div key={index} className="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-lg shadow-md border border-green-200">
-                <h3 className="text-xl font-semibold text-green-800">{person.name} ({person.laborType})</h3>
-                <p className="text-sm text-gray-700">Horas Asignadas: <span className="font-bold">{person.assignedHours}h</span></p>
-                <p className="text-sm text-gray-700">Horas Disponibles: <span className="font-bold">{person.availableHours}h</span></p>
+            {workloadSummary.map((person, index) => {
+              const assigned = Number(person.assignedHours) || 0;   // h/mes
+              const available = Number(person.availableHours) || 0; // h/mes
+              const over = Math.max(assigned - available, 0);
+              const free = Math.max(available - assigned, 0);
+              const pct = available > 0 ? Math.min((assigned / available) * 100, 100) : 0;
 
-                {person.assignedHours > person.availableHours ? (
-                  <p className="text-red-600 font-bold text-sm">🔺 Sobrecarga: Excede en {person.assignedHours - person.availableHours}h</p>
-                ) : (
-                  <p className="text-green-600 font-bold text-sm">✅ OK: Disponible {person.availableHours - person.assignedHours}h</p>
-                )}
+              return (
+                <div key={index} className="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-lg shadow-md border border-green-200">
+                  <h3 className="text-xl font-semibold text-green-800">{person.name} ({person.laborType})</h3>
 
-                <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
-                  <div
-                    className={`h-2.5 rounded-full ${person.assignedHours > person.availableHours ? 'bg-red-500' : 'bg-green-500'}`}
-                    style={{ width: `${Math.min((person.assignedHours / person.availableHours) * 100, 100)}%` }}
-                  ></div>
+                  <p className="text-sm text-gray-700">Horas Asignadas: <span className="font-bold">{assigned} h/mes</span></p>
+                  <p className="text-sm text-gray-700">Horas Disponibles: <span className="font-bold">{available} h/mes</span></p>
+
+                  {over > 0 ? (
+                    <p className="text-red-600 font-bold text-sm">🔺 Sobrecarga: Excede en {over} h/mes</p>
+                  ) : (
+                    <p className="text-green-600 font-bold text-sm">✅ OK: Disponible {free} h/mes</p>
+                  )}
+
+                  <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
+                    <div
+                      className={`h-2.5 rounded-full ${over > 0 ? 'bg-red-500' : 'bg-green-500'}`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                
+                  {/* Nueva sección de meses ocupados */}
+                  <div className="mt-3 text-sm text-gray-800">
+                    <span className="font-semibold">Meses ocupados:</span>
+                    <ul className="list-disc list-inside mt-1">
+                      {(() => {
+                        const persona = personnel.find(p => p.name === person.name);
+                        if (!persona) return null;
+                      
+                        const perMonth = {};
+                        budgets
+                          .filter(b => (b.assignedPersonnel || []).includes(persona.id))
+                          .forEach(b => {
+                            const lb = (b.laborBreakdown || []).find(x => x.type === persona.laborType);
+                            if (!lb) return;
+                            const dist = distributeHoursPerMonth(b.startDate, b.endDate, Number(lb.hours) || 0);
+                            Object.entries(dist).forEach(([m, hrs]) => { perMonth[m] = (perMonth[m] || 0) + hrs; });
+                          });
+                        
+                        const months = Object.keys(perMonth).sort();
+                        return months.map((m) => (
+                          <li key={m}>
+                            <strong>{m}</strong>: {Math.round(perMonth[m])}h
+                          </li>
+                        ));
+                      })()}
+                    </ul>
+                  </div>
                 </div>
-              {/* Nueva sección de semanas ocupadas */}
-                <div className="mt-3 text-sm text-gray-800">
-                  <span className="font-semibold">Semanas ocupadas:</span>
-                  <ul className="list-disc list-inside mt-1">
-                    {(() => {
-                      const persona = personnel.find(p => p.name === person.name);
-                      if (!persona) return null;
-
-                      // Sumar todas las horas asignadas a esta persona
-                      const totalHoras = person.assignedHours;
-                      const horasPorSemana = persona.hoursPerDay * persona.daysPerWeek;
-
-                      // Encontrar la primera fecha de inicio entre los presupuestos asignados
-                      const fechas = budgets
-                        .filter(b => (b.assignedPersonnel || []).includes(persona.id))
-                        .map(b => new Date(b.startDate));
-                      if (fechas.length === 0) return null;
-                      const fechaInicioMasTemprana = fechas.reduce((a, b) => (a < b ? a : b));
-                      const semanas = calcularSemanasOcupacionConPorcentaje(fechaInicioMasTemprana.toISOString(), totalHoras, horasPorSemana);
-                      return semanas.map((s, i) => (
-                        <li key={i}>
-                          Desde <strong>{s.semanaInicio}</strong>: {s.horas}h (
-                          {s.porcentaje}% ocupado)
-                        </li>
-                      ));
-                    })()}
-                  </ul>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
-
       <div className="mt-8 bg-white p-6 rounded-xl shadow-lg border border-purple-200">
         <h2 className="text-2xl font-bold text-purple-700 mb-6 border-b pb-3 border-purple-200">
-          📅 Ocupación Semanal del Personal (Gráfico)
+          📅 Ocupación Mensual del Personal (Gráfico)
         </h2>
-
-        {weeklyOccupationData.length === 0 ? (
+        {monthlyOccupationData.length === 0 ? (
           <p className="text-gray-500">No hay datos suficientes para mostrar el gráfico.</p>
         ) : (
           <ResponsiveContainer width="100%" height={400}>
-            <BarChart
-              data={weeklyOccupationData}
-              margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
-            >
+            <BarChart data={monthlyOccupationData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
-              <YAxis label={{ value: 'Horas', angle: -90, position: 'insideLeft' }} />
+              <YAxis label={{ value: 'Horas/mes', angle: -90, position: 'insideLeft' }} />
               <Tooltip />
               <Legend />
-              {Object.keys(weeklyOccupationData[0])
-                .filter(key => key !== 'name')
-                .map((weekKey, idx) => (
-                  <Bar key={weekKey} dataKey={weekKey} stackId="a" fill={`hsl(${(idx * 70) % 360}, 70%, 60%)`} />
+              {allMonthKeys.map((monthKey, idx) => (
+                <Bar
+                  key={monthKey}
+                  dataKey={monthKey}
+                  stackId="a"
+                  fill={`hsl(${(idx * 70) % 360}, 70%, 60%)`}
+                />
               ))}
             </BarChart>
           </ResponsiveContainer>
@@ -1146,6 +1188,4 @@ function App() {
     </div>
   );
 }
-
 export default App;
-
