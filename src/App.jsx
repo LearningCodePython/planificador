@@ -4,6 +4,7 @@ import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, } from 'firebase/firestore';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer} from 'recharts';
+import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
 import './index.css';
 
 // Nueva función para calcular semanas de ocupación
