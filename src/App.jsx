@@ -328,6 +328,22 @@ function App() {
     }));
   }, [budgets, personnel]);
 
+  const calculateTotalHoursByType = useCallback(() => {
+    const totals = {};
+    budgets.forEach(budget => {
+        if (budget.laborBreakdown) {
+            budget.laborBreakdown.forEach(item => {
+                const type = item.type;
+                const hours = Number(item.hours);
+                if (type && !isNaN(hours)) {
+                    totals[type] = (totals[type] || 0) + hours;
+                }
+            });
+        }
+    });
+    return Object.entries(totals).map(([type, hours]) => ({ type, hours }));
+}, [budgets]);
+
   const monthlyOccupationData = useMemo(() => {
     return personnel.map(person => {
       const perMonth = {};
@@ -515,6 +531,7 @@ function App() {
               exportBudgetsToCSV={exportBudgetsToCSV}
               computeProjectedFinishDate={computeProjectedFinishDate}
               projectedFromForm={projectedFromForm}
+              totalHoursByType={calculateTotalHoursByType()}
             />
           } />
           <Route path="/personal" element={
