@@ -1,21 +1,48 @@
-import React from 'react';
+import React, { useMemo } from 'react';
+import { useBudgets, usePersonnel } from './hooks';
 
-function PersonnelManager({
-  personnel,
-  newPersonnelName,
-  setNewPersonnelName,
-  newPersonnelLaborType,
-  setNewPersonnelLaborType,
-  newPersonnelHoursPerDay,
-  setNewPersonnelHoursPerDay,
-  newPersonnelDaysPerWeek,
-  setNewPersonnelDaysPerWeek,
-  editingPersonnel,
-  handleAddOrUpdatePersonnel,
-  handleEditPersonnel,
-  handleDeletePersonnel,
-  personnelAssignments,
-}) {
+/**
+ * Componente PersonnelManager refactorizado
+ * 
+ * ¿Qué conseguimos?
+ * - Sin props masivas (de 17 props a 0)
+ * - Usa hooks internamente
+ * - Más fácil de mantener y testear
+ * - Lógica encapsulada
+ */
+function PersonnelManager() {
+  // Hooks personalizados
+  const personnelHook = usePersonnel();
+  const { budgets } = useBudgets();
+
+  // Extraer datos y funciones del hook
+  const {
+    personnel,
+    personnelForm,
+    updatePersonnelForm,
+    editPersonnel,
+    savePersonnel,
+    deletePersonnel
+  } = personnelHook;
+
+  // Cálculo de asignaciones de personal (memoizado)
+  const personnelAssignments = useMemo(() => {
+    return personnel.map(person => {
+      const assignedBudgets = budgets
+        .filter(budget => (budget.assignedPersonnel || []).includes(person.id))
+        .map(budget => ({
+          id: budget.id,
+          name: budget.name,
+          hours: (budget.laborBreakdown || []).reduce((sum, item) => {
+            return item.type === person.laborType ? sum + item.hours : sum;
+          }, 0)
+        }));
+      return {
+        ...person,
+        assignedBudgets
+      };
+    });
+  }, [personnel, budgets]);
   return (
     <div className="bg-white p-6 rounded-xl shadow-lg border border-blue-200">
       <h2 className="text-2xl font-bold text-indigo-700 mb-6 border-b pb-3 border-indigo-200">
@@ -28,8 +55,8 @@ function PersonnelManager({
             type="text"
             id="personnelName"
             className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-            value={newPersonnelName}
-            onChange={(e) => setNewPersonnelName(e.target.value)}
+            value={personnelForm.name}
+            onChange={(e) => updatePersonnelForm('name', e.target.value)}
             placeholder="Ej. Juan Pérez"
           />
         </div>
@@ -39,8 +66,8 @@ function PersonnelManager({
             type="text"
             id="personnelLaborType"
             className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-            value={newPersonnelLaborType}
-            onChange={(e) => setNewPersonnelLaborType(e.target.value)}
+            value={personnelForm.laborType}
+            onChange={(e) => updatePersonnelForm('laborType', e.target.value)}
             placeholder="Ej. Diseñador"
           />
         </div>
@@ -50,8 +77,8 @@ function PersonnelManager({
             type="number"
             id="personnelHoursPerDay"
             className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-            value={newPersonnelHoursPerDay}
-            onChange={(e) => setNewPersonnelHoursPerDay(e.target.value)}
+            value={personnelForm.hoursPerDay}
+            onChange={(e) => updatePersonnelForm('hoursPerDay', e.target.value)}
             placeholder="Ej. 8"
           />
         </div>
@@ -61,16 +88,16 @@ function PersonnelManager({
             type="number"
             id="personnelDaysPerWeek"
             className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-            value={newPersonnelDaysPerWeek}
-            onChange={(e) => setNewPersonnelDaysPerWeek(e.target.value)}
+            value={personnelForm.daysPerWeek}
+            onChange={(e) => updatePersonnelForm('daysPerWeek', e.target.value)}
             placeholder="Ej. 5"
           />
         </div>
         <button
-          onClick={handleAddOrUpdatePersonnel}
+          onClick={savePersonnel}
           className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition duration-300 ease-in-out shadow-md flex items-center justify-center gap-2"
         >
-          {editingPersonnel ? (
+          {personnelForm.id ? (
             <>
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                 <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.38-2.827-2.828z" />
@@ -111,13 +138,13 @@ function PersonnelManager({
               )}
               <div className="mt-4 flex gap-2">
                 <button
-                  onClick={() => handleEditPersonnel(person)}
+                  onClick={() => editPersonnel(person)}
                   className="flex-1 bg-yellow-500 text-white py-1 px-3 rounded-md hover:bg-yellow-600 transition duration-300 ease-in-out text-sm shadow-sm"
                 >
                   Editar
                 </button>
                 <button
-                  onClick={() => handleDeletePersonnel(person.id)}
+                  onClick={() => deletePersonnel(person.id)}
                   className="flex-1 bg-red-500 text-white py-1 px-3 rounded-md hover:bg-red-600 transition duration-300 ease-in-out text-sm shadow-sm"
                 >
                   Eliminar

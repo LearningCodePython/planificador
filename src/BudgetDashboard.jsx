@@ -1,51 +1,122 @@
-import React from 'react';
-import {BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer} from 'recharts';
+import React, { useMemo } from 'react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-// IMPORTACIÓN DE LAS FUNCIONES AUXILIARES (Línea corregida)
-import { distributeHoursPerMonth, monthsBetween, calcularSemanasOcupacion } from './utils';
+// HOOKS PERSONALIZADOS
+import { useBudgets, usePersonnel } from './hooks';
 
-function BudgetDashboard({
-  budgets,
-  personnel,
-  newBudgetName,
-  setNewBudgetName,
-  newBudgetTotalHours,
-  setNewBudgetTotalHours,
-  newBudgetLaborBreakdown,
-  setNewBudgetLaborBreakdown,
-  newBudgetStartDate,
-  setNewBudgetStartDate,
-  newBudgetEndDate,
-  setNewBudgetEndDate,
-  newBudgetStatus,
-  setNewBudgetStatus,
-  newBudgetCategory,
-  setNewBudgetCategory,
-  assignedPersonnelIds,
-  setAssignedPersonnelIds,
-  editingBudget,
-  handleAddOrUpdateBudget,
-  handleEditBudget,
-  handleUseBudgetAsTemplate,
-  handleDeleteBudget,
-  handleAddLaborType,
-  handleLaborBreakdownChange,
-  handleRemoveLaborType,
-  calculateWorkloadPerPerson,
-  monthlyOccupationData,
-  allMonthKeys,
-  selectedCategory,
-  setSelectedCategory,
-  exportBudgetsToCSV,
-  computeProjectedFinishDate,
-  projectedFromForm,
-  totalHoursByType,
-}) {
+// FUNCIONES AUXILIARES
+import { distributeHoursPerMonth, monthsBetween, calcularSemanasOcupacion, monthlyCapacityForPerson, computeProjectedFinishDate } from './utils';
 
-  const filteredBudgets = selectedCategory === 'Todas'
-  ? budgets
-  : budgets.filter(b => b.category === 'Obra' || b.category === 'Mantenimiento');
-  const workloadSummary = calculateWorkloadPerPerson();
+/**
+ * Componente BudgetDashboard refactorizado
+ * 
+ * ¿Qué conseguimos?
+ * - Sin props masivas (de 40+ props a 0)
+ * - Usa hooks internamente
+ * - Más fácil de mantener y testear
+ * - Lógica encapsulada
+ */
+function BudgetDashboard() {
+  // Hooks personalizados que encapsulan toda la lógica
+  const budgetHook = useBudgets();
+  const personnelHook = usePersonnel();
+
+  // Extraer datos y funciones de los hooks
+  const {
+    budgets,
+    budgetForm,
+    selectedCategory,
+    updateBudgetForm,
+    editBudget,
+    useBudgetAsTemplate,
+    saveBudget,
+    deleteBudget,
+    addLaborType,
+    updateLaborBreakdown,
+    removeLaborType,
+    setSelectedCategory,
+    totalHoursByType,
+    exportToCSV
+  } = budgetHook;
+
+  const { personnel } = personnelHook;
+
+  // Cálculos memoizados para optimizar rendimiento
+  const filteredBudgets = useMemo(() => {
+    return selectedCategory === 'Todas'
+      ? budgets
+      : budgets.filter(b => b.category === selectedCategory);
+  }, [budgets, selectedCategory]);
+
+  const workloadSummary = useMemo(() => {
+    const workload = {};
+    personnel.forEach((person) => {
+      const availableHours = monthlyCapacityForPerson(person.hoursPerDay, person.daysPerWeek);
+      workload[person.id] = {
+        id: person.id,
+        name: person.name,
+        laborType: person.laborType,
+        assignedHours: 0,
+        availableHours: availableHours,
+      };
+    });
+    budgets.forEach((budget) => {
+      if (!budget.assignedPersonnel || !(budget.laborBreakdown && budget.startDate && budget.endDate)) return;
+      budget.assignedPersonnel.forEach((personId) => {
+        if (!workload[personId]) return;
+        const personRole = workload[personId].laborType;
+        const lb = (budget.laborBreakdown || []).find(x => x.type === personRole);
+        if (!lb) return;
+        const months = monthsBetween(budget.startDate, budget.endDate);
+        const hoursPerMonth = months.length > 0 ? Number(lb.hours || 0) / months.length : 0;
+        workload[personId].assignedHours += hoursPerMonth;
+      });
+    });
+    return Object.values(workload).map(w => ({
+      ...w,
+      assignedHours: Math.round(w.assignedHours),
+      availableHours: Math.round(w.availableHours),
+    }));
+  }, [budgets, personnel]);
+
+  const monthlyOccupationData = useMemo(() => {
+    return personnel.map(person => {
+      const perMonth = {};
+      budgets
+        .filter(b => (b.assignedPersonnel || []).includes(person.id))
+        .forEach(b => {
+          const lb = (b.laborBreakdown || []).find(x => x.type === person.laborType);
+          if (!lb) return;
+          const dist = distributeHoursPerMonth(b.startDate, b.endDate, Number(lb.hours) || 0);
+          Object.entries(dist).forEach(([month, hrs]) => {
+            perMonth[month] = (perMonth[month] || 0) + hrs;
+          });
+        });
+      if (Object.keys(perMonth).length === 0) return null;
+      return { name: person.name, ...perMonth };
+    }).filter(Boolean);
+  }, [personnel, budgets]);
+
+  const allMonthKeys = useMemo(() => {
+    const s = new Set();
+    monthlyOccupationData.forEach(row => {
+      Object.keys(row).forEach(k => {
+        if (k !== 'name') s.add(k);
+      });
+    });
+    return Array.from(s).sort();
+  }, [monthlyOccupationData]);
+
+  const projectedFromForm = useMemo(() => {
+    if (!budgetForm.startDate) return null;
+    const cleanedBreakdown = budgetForm.laborBreakdown.filter(i => i.type && i.hours);
+    const tempBudget = {
+      startDate: budgetForm.startDate,
+      laborBreakdown: cleanedBreakdown,
+      assignedPersonnel: budgetForm.assignedPersonnel
+    };
+    return computeProjectedFinishDate(tempBudget, personnel);
+  }, [budgetForm, personnel]);
 
   return (
     <div className="flex flex-col lg:flex-row gap-8">
@@ -63,8 +134,8 @@ function BudgetDashboard({
                 type="text"
                 id="budgetName"
                 className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                value={newBudgetName}
-                onChange={(e) => setNewBudgetName(e.target.value)}
+                value={budgetForm.name}
+                onChange={(e) => updateBudgetForm('name', e.target.value)}
                 placeholder="Ej. Proyecto Alpha"
               />
             </div>
@@ -74,8 +145,8 @@ function BudgetDashboard({
                 type="number"
                 id="budgetTotalHours"
                 className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                value={newBudgetTotalHours}
-                onChange={(e) => setNewBudgetTotalHours(e.target.value)}
+                value={budgetForm.totalHours}
+                onChange={(e) => updateBudgetForm('totalHours', e.target.value)}
                 placeholder="Ej. 500"
               />
             </div>
@@ -85,10 +156,10 @@ function BudgetDashboard({
                   multiple
                   id="assignedPersonnel"
                   className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                  value={assignedPersonnelIds}
+                  value={budgetForm.assignedPersonnel}
                   onChange={(e) => {
                     const selectedOptions = Array.from(e.target.selectedOptions, option => option.value);
-                    setAssignedPersonnelIds(selectedOptions);
+                    updateBudgetForm('assignedPersonnel', selectedOptions);
                   }}
                 >
                   {personnel.map(person => (
@@ -99,7 +170,7 @@ function BudgetDashboard({
                 </select>
             </div>
             <h3 className="text-lg font-semibold text-gray-700 mt-4">Desglose por Mano de Obra:</h3>
-            {newBudgetLaborBreakdown.map((item, index) => (
+            {budgetForm.laborBreakdown.map((item, index) => (
               <div key={index} className="flex flex-col sm:flex-row gap-2 items-end">
                 <div className="flex-1 w-full">
                   <label htmlFor={`laborType-${index}`} className="block text-sm font-medium text-gray-700">Tipo</label>
@@ -108,7 +179,7 @@ function BudgetDashboard({
                     id={`laborType-${index}`}
                     className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                     value={item.type}
-                    onChange={(e) => handleLaborBreakdownChange(index, 'type', e.target.value)}
+                    onChange={(e) => updateLaborBreakdown(index, 'type', e.target.value)}
                     placeholder="Ej. Ingeniero"
                   />
                 </div>
@@ -119,13 +190,13 @@ function BudgetDashboard({
                     id={`laborHours-${index}`}
                     className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                     value={item.hours}
-                    onChange={(e) => handleLaborBreakdownChange(index, 'hours', e.target.value)}
+                    onChange={(e) => updateLaborBreakdown(index, 'hours', e.target.value)}
                     placeholder="Ej. 200"
                   />
                 </div>
-                {newBudgetLaborBreakdown.length > 1 && (
+                {budgetForm.laborBreakdown.length > 1 && (
                   <button
-                    onClick={() => handleRemoveLaborType(index)}
+                    onClick={() => removeLaborType(index)}
                     className="p-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition duration-300 ease-in-out shadow-sm flex-shrink-0"
                     title="Eliminar tipo de mano de obra"
                   >
@@ -137,7 +208,7 @@ function BudgetDashboard({
               </div>
             ))}
             <button
-              onClick={handleAddLaborType}
+              onClick={addLaborType}
               className="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition duration-300 ease-in-out shadow-md flex items-center justify-center gap-2"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -151,8 +222,8 @@ function BudgetDashboard({
                 type="date"
                 id="budgetStartDate"
                 className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                value={newBudgetStartDate}
-                onChange={(e) => setNewBudgetStartDate(e.target.value)}
+                value={budgetForm.startDate}
+                onChange={(e) => updateBudgetForm('startDate', e.target.value)}
               />
             </div>
             <div>
@@ -163,8 +234,8 @@ function BudgetDashboard({
                 type="date"
                 id="budgetEndDate"
                 className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                value={newBudgetEndDate}
-                onChange={(e) => setNewBudgetEndDate(e.target.value)}
+                value={budgetForm.endDate}
+                onChange={(e) => updateBudgetForm('endDate', e.target.value)}
               />
               <div className="mt-1 text-xs">
                 {projectedFromForm ? (
@@ -189,8 +260,8 @@ function BudgetDashboard({
               <select
                 id="budgetStatus"
                 className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                value={newBudgetStatus}
-                onChange={(e) => setNewBudgetStatus(e.target.value)}
+                value={budgetForm.status}
+                onChange={(e) => updateBudgetForm('status', e.target.value)}
               >
                 <option value="Accepted">Aceptado</option>
                 <option value="Pending">Pendiente</option>
@@ -203,8 +274,8 @@ function BudgetDashboard({
               <select
                 id="budgetCategory"
                 className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                value={newBudgetCategory}
-                onChange={(e) => setNewBudgetCategory(e.target.value)}
+                value={budgetForm.category}
+                onChange={(e) => updateBudgetForm('category', e.target.value)}
               >
                 <option value="">Seleccione una categoría</option>
                 <option value="Obra">Obra</option>
@@ -212,10 +283,10 @@ function BudgetDashboard({
               </select>
             </div>
             <button
-              onClick={handleAddOrUpdateBudget}
+              onClick={saveBudget}
               className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition duration-300 ease-in-out shadow-md flex items-center justify-center gap-2"
             >
-              {editingBudget ? (
+              {budgetForm.id ? (
                 <>
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                     <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.38-2.827-2.828z" />
@@ -359,7 +430,7 @@ function BudgetDashboard({
             📝 Lista de Presupuestos
           </h2>
           <button
-            onClick={exportBudgetsToCSV}
+            onClick={() => exportToCSV(personnel)}
             className="mb-4 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 text-sm shadow"
           >
             📤 Exportar Presupuestos a CSV
@@ -411,19 +482,19 @@ function BudgetDashboard({
                   </div>
                   <div className="mt-4 flex flex-col sm:flex-row gap-2">
                     <button
-                      onClick={() => handleEditBudget(budget)}
+                      onClick={() => editBudget(budget)}
                       className="flex-1 bg-yellow-500 text-white py-1 px-3 rounded-md hover:bg-yellow-600 transition duration-300 ease-in-out text-sm shadow-sm"
                     >
                       Editar
                     </button>
                     <button
-                      onClick={() => handleDeleteBudget(budget.id)}
+                      onClick={() => deleteBudget(budget.id)}
                       className="flex-1 bg-red-500 text-white py-1 px-3 rounded-md hover:bg-red-600 transition duration-300 ease-in-out text-sm shadow-sm"
                     >
                       Eliminar
                     </button>
                     <button
-                      onClick={() => handleUseBudgetAsTemplate(budget)}
+                      onClick={() => useBudgetAsTemplate(budget)}
                       className="flex-1 bg-blue-600 text-white py-1 px-3 rounded-md hover:bg-blue-700 transition duration-300 ease-in-out text-sm shadow-sm"
                     >
                       USAR COMO BASE
