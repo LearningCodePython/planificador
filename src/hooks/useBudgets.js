@@ -124,21 +124,14 @@ export const useBudgets = () => {
       return false;
     }
 
-    if (budgetForm.assignedPersonnel.length === 0) {
-      showMessageWithTimeout("Debes asignar al menos una persona al presupuesto antes de guardarlo.");
-      return false;
-    }
-
-    if (!budgetForm.startDate || !budgetForm.endDate) {
-      showMessageWithTimeout("Debes especificar una fecha de inicio y una fecha de fin.");
-      return false;
-    }
-
-    const start = new Date(budgetForm.startDate);
-    const end = new Date(budgetForm.endDate);
-    if (start > end) {
-      showMessageWithTimeout("La fecha de inicio no puede ser posterior a la fecha de fin.");
-      return false;
+    // Validar fechas solo si ambas están presentes
+    if (budgetForm.startDate && budgetForm.endDate) {
+      const start = new Date(budgetForm.startDate);
+      const end = new Date(budgetForm.endDate);
+      if (start > end) {
+        showMessageWithTimeout("La fecha de inicio no puede ser posterior a la fecha de fin.");
+        return false;
+      }
     }
 
     const budgetData = {
