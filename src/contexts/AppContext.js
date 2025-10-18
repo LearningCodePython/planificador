@@ -38,8 +38,12 @@ export const AppProvider = ({ children }) => {
   const { 
     db, 
     auth, 
+    user,
     userId, 
-    isAuthReady 
+    isAuthReady,
+    signUp,
+    signIn,
+    logOut
   } = useFirebase(showMessageWithTimeout);
 
   // Función helper para obtener el appId
@@ -54,8 +58,12 @@ export const AppProvider = ({ children }) => {
     // Firebase
     db,
     auth,
+    user,
     userId,
     isAuthReady,
+    signUp,
+    signIn,
+    logOut,
     getAppId,
     
     // Mensajes

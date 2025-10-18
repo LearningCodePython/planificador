@@ -1,94 +1,74 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
-import './index.css';
-
-// CONTEXTOS Y COMPONENTES
-import { AppProvider, useAppContext } from './contexts/AppContext';
-import { ThemeProvider, useTheme } from './contexts/ThemeContext';
+import React, { useState } from 'react';
 import BudgetDashboard from './BudgetDashboard';
 import PersonnelManager from './PersonnelManager';
 import MessageModal from './components/MessageModal';
-
-const ThemeToggleButton = () => {
-  const { theme, toggleTheme } = useTheme();
-  console.log('ThemeToggleButton rendered. Current theme:', theme);
-
-  return (
-    <button
-      onClick={() => {
-        console.log('Toggle theme button clicked!');
-        toggleTheme();
-      }}
-      className="absolute top-4 right-4 z-50 px-4 py-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200"
-    >
-      {theme === 'light' ? '🌙' : '☀️'}
-    </button>
-  );
-};
+import { AppProvider } from './contexts/AppContext';
+import { ThemeProvider, useTheme } from './contexts/ThemeContext';
+import AuthWrapper from './components/AuthWrapper';
+import { useAppContext } from './contexts/AppContext';
 
 const AppContent = () => {
-  const { userId } = useAppContext();
+  const { logOut, user } = useAppContext();
+  const { theme, toggleTheme } = useTheme();
+  const [activeView, setActiveView] = useState('budgets'); // 'budgets' o 'personnel'
+
+  const getButtonClass = (viewName) => 
+    `px-4 py-2 text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ` +
+    (activeView === viewName 
+      ? 'bg-indigo-600 text-white' 
+      : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-600');
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-800 dark:to-gray-900 p-4 font-inter text-gray-800 dark:text-gray-200">
-      <ThemeToggleButton />
-      <MessageModal />
-
-      <h1 className="text-4xl font-extrabold text-center text-indigo-800 dark:text-indigo-300 mb-8 drop-shadow-md">
-        📊 Planificador de Recursos y Presupuestos
-      </h1>
-      
-      {userId && (
-        <div className="bg-white dark:bg-gray-700 p-4 rounded-lg shadow-md mb-6 text-center text-sm text-gray-600 dark:text-gray-300 border border-blue-200 dark:border-gray-600">
-          Tu ID de Usuario (para datos privados): <span className="font-mono text-blue-700 dark:text-blue-400 break-all">{userId}</span>
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+          <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Planificador de Proyectos</h1>
+          
+          <div className="flex items-center gap-2">
+            {user && <span className='text-sm'>{user.email}</span>}
+            <button onClick={toggleTheme} className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700">
+              {theme === 'light' ? '🌙' : '☀️'}
+            </button>
+            {user && (
+              <button 
+                onClick={logOut}
+                className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out"
+              >
+                Cerrar Sesión
+              </button>
+            )}
+          </div>
         </div>
-      )}
 
-      <nav className="flex justify-center mb-8 gap-4">
-        <NavLink
-          to="/"
-          end
-          className={({ isActive }) =>
-            `px-6 py-3 rounded-full text-lg font-semibold transition-colors duration-300 ${
-              isActive
-                ? 'bg-indigo-600 text-white shadow-lg'
-                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'
-            }`
-          }
-        >
-          Panel de Presupuestos
-        </NavLink>
-        <NavLink
-          to="/personal"
-          className={({ isActive }) =>
-            `px-6 py-3 rounded-full text-lg font-semibold transition-colors duration-300 ${
-              isActive
-                ? 'bg-indigo-600 text-white shadow-lg'
-                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'
-            }`
-          }
-        >
-          Gestión de Personal
-        </NavLink>
-      </nav>
+        <div className="mb-6 flex items-center gap-4">
+          <button onClick={() => setActiveView('budgets')} className={getButtonClass('budgets')}>
+            Panel de Presupuestos
+          </button>
+          <button onClick={() => setActiveView('personnel')} className={getButtonClass('personnel')}>
+            Gestión de Personal
+          </button>
+        </div>
 
-      <Routes>
-        <Route path="/" element={<BudgetDashboard />} />
-        <Route path="/personal" element={<PersonnelManager />} />
-      </Routes>
+        <div className="grid grid-cols-1 gap-6">
+          {activeView === 'budgets' && <BudgetDashboard />}
+          {activeView === 'personnel' && <PersonnelManager />}
+        </div>
+
+        <MessageModal />
+      </div>
     </div>
   );
-};
+}
 
 function App() {
   return (
-    <BrowserRouter>
+    <ThemeProvider>
       <AppProvider>
-        <ThemeProvider>
+        <AuthWrapper>
           <AppContent />
-        </ThemeProvider>
+        </AuthWrapper>
       </AppProvider>
-    </BrowserRouter>
+    </ThemeProvider>
   );
 }
 

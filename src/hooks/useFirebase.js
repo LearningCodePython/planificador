@@ -1,6 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { 
+  getAuth, 
+  onAuthStateChanged, 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword, 
+  signOut 
+} from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 /**
@@ -15,7 +21,7 @@ import { getFirestore } from 'firebase/firestore';
 export const useFirebase = (onError) => {
   const [db, setDb] = useState(null);
   const [auth, setAuth] = useState(null);
-  const [userId, setUserId] = useState(null);
+  const [user, setUser] = useState(null); // Cambiado de userId a user para tener más info
   const [isAuthReady, setIsAuthReady] = useState(false);
 
   useEffect(() => {
@@ -38,19 +44,8 @@ export const useFirebase = (onError) => {
         setDb(firestore);
         setAuth(authInstance);
 
-        const unsubscribe = onAuthStateChanged(authInstance, async (user) => {
-          if (user) {
-            setUserId(user.uid);
-          } else {
-            try {
-              await signInAnonymously(authInstance);
-            } catch (error) {
-              console.error("Error al iniciar sesión anónimamente:", error);
-              if (onError) {
-                onError(`Error al iniciar sesión: ${error.message}`);
-              }
-            }
-          }
+        const unsubscribe = onAuthStateChanged(authInstance, (user) => {
+          setUser(user);
           setIsAuthReady(true);
         });
 
@@ -66,10 +61,47 @@ export const useFirebase = (onError) => {
     initFirebase();
   }, [onError]);
 
+  // Funciones de autenticación
+  const signUp = useCallback(async (email, password) => {
+    if (!auth) return;
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
+    } catch (error) {
+      console.error("Error en el registro:", error);
+      if (onError) onError(`Error en el registro: ${error.message}`);
+      throw error; // Re-lanzar para manejar en el formulario
+    }
+  }, [auth, onError]);
+
+  const signIn = useCallback(async (email, password) => {
+    if (!auth) return;
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (error) {
+      console.error("Error al iniciar sesión:", error);
+      if (onError) onError(`Error al iniciar sesión: ${error.message}`);
+      throw error; // Re-lanzar para manejar en el formulario
+    }
+  }, [auth, onError]);
+
+  const logOut = useCallback(async () => {
+    if (!auth) return;
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error);
+      if (onError) onError(`Error al cerrar sesión: ${error.message}`);
+    }
+  }, [auth, onError]);
+
   return { 
     db, 
     auth, 
-    userId, 
-    isAuthReady 
+    user, // Ahora devolvemos el objeto user completo
+    userId: user ? user.uid : null, // Mantenemos userId por compatibilidad
+    isAuthReady,
+    signUp,
+    signIn,
+    logOut
   };
 };
