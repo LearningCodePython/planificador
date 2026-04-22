@@ -1,56 +1,58 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { useState, useEffect, useCallback } from 'react';
 import { useAppContext } from '../contexts/AppContext';
 
-/**
- * Hook especializado para manejo de personal
- * 
- * ¿Qué conseguimos?
- * - Encapsular toda la lógica de personal
- * - Estado y funciones específicas organizadas
- * - Validaciones centralizadas
- * - Reutilización en múltiples componentes
- */
+const apiFetch = async (path, options = {}) => {
+  const response = await fetch(`/api${path}`, {
+    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+    ...options,
+  });
+
+  if (!response.ok) {
+    let message = `HTTP ${response.status}`;
+    try {
+      const data = await response.json();
+      message = data.error || message;
+    } catch (_e) {
+      // noop
+    }
+    throw new Error(message);
+  }
+
+  if (response.status === 204) return null;
+  return response.json();
+};
+
 export const usePersonnel = () => {
-  // Contexto global
-  const { db, userId, isAuthReady, showMessageWithTimeout, getAppId } = useAppContext();
-  
-  // Estado local del hook
+  const { showMessageWithTimeout } = useAppContext();
+
   const [personnel, setPersonnel] = useState([]);
 
-  // Estado del formulario
   const [personnelForm, setPersonnelForm] = useState({
-    id: null, // null para nuevo, id para edición
+    id: null,
     name: '',
     laborType: '',
     hoursPerDay: '',
     daysPerWeek: '',
   });
 
-  // Efecto para cargar personal
-  useEffect(() => {
-    if (!db || !userId || !isAuthReady) return;
-
-    const appId = getAppId();
-    const personnelCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/personnel`);
-    
-    const unsubscribe = onSnapshot(personnelCollectionRef, (snapshot) => {
-      const personnelData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setPersonnel(personnelData);
-    }, (error) => {
-      console.error("Error fetching personnel:", error);
+  const loadPersonnel = useCallback(async () => {
+    try {
+      const data = await apiFetch('/personnel');
+      setPersonnel(data || []);
+    } catch (error) {
+      console.error('Error loading personnel:', error);
       showMessageWithTimeout(`Error al cargar personal: ${error.message}`);
-    });
+    }
+  }, [showMessageWithTimeout]);
 
-    return () => unsubscribe();
-  }, [db, userId, isAuthReady, getAppId, showMessageWithTimeout]);
+  useEffect(() => {
+    loadPersonnel();
+  }, [loadPersonnel]);
 
-  // Función para actualizar el formulario
   const updatePersonnelForm = useCallback((field, value) => {
-    setPersonnelForm(prev => ({ ...prev, [field]: value }));
+    setPersonnelForm((prev) => ({ ...prev, [field]: value }));
   }, []);
 
-  // Función para resetear el formulario
   const resetPersonnelForm = useCallback(() => {
     setPersonnelForm({
       id: null,
@@ -61,7 +63,6 @@ export const usePersonnel = () => {
     });
   }, []);
 
-  // Función para cargar una persona en el formulario (edición)
   const editPersonnel = useCallback((person) => {
     setPersonnelForm({
       id: person.id,
@@ -72,78 +73,56 @@ export const usePersonnel = () => {
     });
   }, []);
 
-  // Función para guardar personal
   const savePersonnel = useCallback(async () => {
-    if (!db || !userId) {
-      showMessageWithTimeout("Firebase no está inicializado o el usuario no está autenticado.");
+    if (!personnelForm.name || !personnelForm.laborType || !personnelForm.hoursPerDay || !personnelForm.daysPerWeek) {
+      showMessageWithTimeout('Por favor, complete todos los campos del personal.');
       return false;
     }
 
-    // Validaciones
-    if (!personnelForm.name || !personnelForm.laborType || 
-        !personnelForm.hoursPerDay || !personnelForm.daysPerWeek) {
-      showMessageWithTimeout("Por favor, complete todos los campos del personal.");
-      return false;
-    }
-
-    const personnelData = {
+    const payload = {
       name: personnelForm.name,
       laborType: personnelForm.laborType,
       hoursPerDay: Number(personnelForm.hoursPerDay),
       daysPerWeek: Number(personnelForm.daysPerWeek),
-      userId: userId,
     };
 
     try {
-      const appId = getAppId();
       if (personnelForm.id) {
-        // Actualizar
-        await updateDoc(doc(db, `artifacts/${appId}/users/${userId}/personnel`, personnelForm.id), personnelData);
-        showMessageWithTimeout("Personal actualizado con éxito.");
+        await apiFetch(`/personnel/${personnelForm.id}`, { method: 'PUT', body: JSON.stringify(payload) });
+        showMessageWithTimeout('Personal actualizado con éxito.');
       } else {
-        // Crear nuevo
-        await addDoc(collection(db, `artifacts/${appId}/users/${userId}/personnel`), personnelData);
-        showMessageWithTimeout("Personal añadido con éxito.");
+        await apiFetch('/personnel', { method: 'POST', body: JSON.stringify(payload) });
+        showMessageWithTimeout('Personal añadido con éxito.');
       }
       resetPersonnelForm();
+      loadPersonnel();
       return true;
-    } catch (e) {
-      console.error("Error saving personnel:", e);
-      showMessageWithTimeout(`Error al guardar personal: ${e.message}`);
+    } catch (error) {
+      console.error('Error saving personnel:', error);
+      showMessageWithTimeout(`Error al guardar personal: ${error.message}`);
       return false;
     }
-  }, [db, userId, personnelForm, showMessageWithTimeout, getAppId, resetPersonnelForm]);
+  }, [personnelForm, showMessageWithTimeout, resetPersonnelForm, loadPersonnel]);
 
-  // Función para eliminar personal
   const deletePersonnel = useCallback(async (id) => {
-    if (!db || !userId) {
-      showMessageWithTimeout("Firebase no está inicializado o el usuario no está autenticado.");
-      return false;
-    }
-
     try {
-      const appId = getAppId();
-      await deleteDoc(doc(db, `artifacts/${appId}/users/${userId}/personnel`, id));
-      showMessageWithTimeout("Personal eliminado con éxito.");
+      await apiFetch(`/personnel/${id}`, { method: 'DELETE' });
+      showMessageWithTimeout('Personal eliminado con éxito.');
+      loadPersonnel();
       return true;
-    } catch (e) {
-      console.error("Error deleting personnel:", e);
-      showMessageWithTimeout(`Error al eliminar personal: ${e.message}`);
+    } catch (error) {
+      console.error('Error deleting personnel:', error);
+      showMessageWithTimeout(`Error al eliminar personal: ${error.message}`);
       return false;
     }
-  }, [db, userId, showMessageWithTimeout, getAppId]);
+  }, [showMessageWithTimeout, loadPersonnel]);
 
   return {
-    // Estado
     personnel,
     personnelForm,
-    
-    // Funciones de formulario
     updatePersonnelForm,
     resetPersonnelForm,
     editPersonnel,
-    
-    // Operaciones CRUD
     savePersonnel,
     deletePersonnel,
   };

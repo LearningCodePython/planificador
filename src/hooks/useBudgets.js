@@ -1,29 +1,45 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useAppContext } from '../contexts/AppContext';
-import { monthsBetween, distributeHoursPerMonth, monthlyCapacityForPerson, computeProjectedFinishDate } from '../utils';
 
-/**
- * Hook especializado para manejo de presupuestos
- * 
- * ¿Qué conseguimos?
- * - Encapsular TODA la lógica de presupuestos
- * - Reutilizar en cualquier componente que necesite budgets
- * - Estado y funciones específicas organizadas
- * - Validaciones centralizadas
- */
+const apiFetch = async (path, options = {}) => {
+  const response = await fetch(`/api${path}`, {
+    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+    ...options,
+  });
+
+  if (!response.ok) {
+    let message = `HTTP ${response.status}`;
+    try {
+      const data = await response.json();
+      message = data.error || message;
+    } catch (_e) {
+      // noop
+    }
+    throw new Error(message);
+  }
+
+  if (response.status === 204) return null;
+  return response.json();
+};
+
 export const useBudgets = () => {
-  // Contexto global
-  const { db, userId, isAuthReady, showMessageWithTimeout, getAppId } = useAppContext();
-  
-  // Estado local del hook
+  const { showMessageWithTimeout } = useAppContext();
+
   const [budgets, setBudgets] = useState([]);
+  const [acceptedBudgets, setAcceptedBudgets] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('Todas');
 
-  // Estado del formulario
-  const [budgetForm, setBudgetForm] = useState({
-    id: null, // null para nuevo, id para edición
+  const [acceptedBudgetForm, setAcceptedBudgetForm] = useState({
     name: '',
+    budgetNumber: '',
+    acceptanceDate: '',
+  });
+
+  const [budgetForm, setBudgetForm] = useState({
+    id: null,
+    name: '',
+    budgetNumber: '',
+    acceptanceDate: '',
     totalHours: '',
     laborBreakdown: [{ type: '', hours: '' }],
     startDate: '',
@@ -33,34 +49,53 @@ export const useBudgets = () => {
     assignedPersonnel: [],
   });
 
-  // Efecto para cargar presupuestos
-  useEffect(() => {
-    if (!db || !userId || !isAuthReady) return;
-
-    const appId = getAppId();
-    const budgetsCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/budgets`);
-    
-    const unsubscribe = onSnapshot(budgetsCollectionRef, (snapshot) => {
-      const budgetsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setBudgets(budgetsData);
-    }, (error) => {
-      console.error("Error fetching budgets:", error);
+  const loadBudgets = useCallback(async () => {
+    try {
+      const data = await apiFetch('/budgets');
+      setBudgets(data || []);
+    } catch (error) {
+      console.error('Error loading budgets:', error);
       showMessageWithTimeout(`Error al cargar presupuestos: ${error.message}`);
-    });
+    }
+  }, [showMessageWithTimeout]);
 
-    return () => unsubscribe();
-  }, [db, userId, isAuthReady, getAppId, showMessageWithTimeout]);
+  const loadAcceptedBudgets = useCallback(async () => {
+    try {
+      const data = await apiFetch('/accepted-budgets');
+      setAcceptedBudgets(data || []);
+    } catch (error) {
+      console.error('Error loading accepted budgets:', error);
+      showMessageWithTimeout(`Error al cargar bolsa de aceptados: ${error.message}`);
+    }
+  }, [showMessageWithTimeout]);
 
-  // Función para actualizar el formulario
+  useEffect(() => {
+    loadBudgets();
+    loadAcceptedBudgets();
+  }, [loadBudgets, loadAcceptedBudgets]);
+
   const updateBudgetForm = useCallback((field, value) => {
-    setBudgetForm(prev => ({ ...prev, [field]: value }));
+    setBudgetForm((prev) => ({ ...prev, [field]: value }));
   }, []);
 
-  // Función para resetear el formulario
+  const updateAcceptedBudgetForm = useCallback((field, value) => {
+    setAcceptedBudgetForm((prev) => ({ ...prev, [field]: value }));
+  }, []);
+
+  const resetAcceptedBudgetForm = useCallback(() => {
+    setAcceptedBudgetForm({
+      name: '',
+      budgetNumber: '',
+      acceptanceDate: '',
+    });
+  }, []);
+
   const resetBudgetForm = useCallback(() => {
     setBudgetForm({
       id: null,
       name: '',
+      budgetNumber: '',
+      acceptanceDate: '',
       totalHours: '',
       laborBreakdown: [{ type: '', hours: '' }],
       startDate: '',
@@ -71,156 +106,218 @@ export const useBudgets = () => {
     });
   }, []);
 
-  // Función para cargar un presupuesto en el formulario (edición)
   const editBudget = useCallback((budget) => {
     setBudgetForm({
       id: budget.id,
       name: budget.name,
+      budgetNumber: budget.budgetNumber || '',
+      acceptanceDate: budget.acceptanceDate || '',
       totalHours: budget.totalHours,
-      laborBreakdown: budget.laborBreakdown,
-      startDate: budget.startDate,
-      endDate: budget.endDate,
-      status: budget.status,
+      laborBreakdown: budget.laborBreakdown || [{ type: '', hours: '' }],
+      startDate: budget.startDate || '',
+      endDate: budget.endDate || '',
+      status: budget.status || 'Accepted',
       category: budget.category || '',
       assignedPersonnel: budget.assignedPersonnel || [],
     });
   }, []);
 
-  // Función para usar como plantilla
   const useBudgetAsTemplate = useCallback((budget) => {
     const originalStart = new Date(budget.startDate);
     const originalEnd = new Date(budget.endDate);
-    const durationInDays = Math.ceil((originalEnd - originalStart) / (1000 * 60 * 60 * 24));
+    const hasValidDates = !Number.isNaN(originalStart.getTime()) && !Number.isNaN(originalEnd.getTime());
+    const durationInDays = hasValidDates
+      ? Math.max(1, Math.ceil((originalEnd - originalStart) / (1000 * 60 * 60 * 24)))
+      : 30;
+
     const today = new Date();
-    const newStart = today.toISOString().split("T")[0];
+    const newStart = today.toISOString().split('T')[0];
     const newEndDate = new Date(today);
     newEndDate.setDate(today.getDate() + durationInDays);
-    const newEnd = newEndDate.toISOString().split("T")[0];
+    const newEnd = newEndDate.toISOString().split('T')[0];
 
     setBudgetForm({
       id: null,
       name: `${budget.name} (copia)`,
+      budgetNumber: budget.budgetNumber || '',
+      acceptanceDate: budget.acceptanceDate || '',
       totalHours: budget.totalHours,
-      laborBreakdown: budget.laborBreakdown,
+      laborBreakdown: budget.laborBreakdown || [{ type: '', hours: '' }],
       startDate: newStart,
       endDate: newEnd,
-      status: budget.status,
+      status: budget.status || 'Accepted',
       category: budget.category || '',
       assignedPersonnel: budget.assignedPersonnel || [],
     });
   }, []);
 
-  // Función para agregar/actualizar presupuesto
   const saveBudget = useCallback(async () => {
-    if (!db || !userId) {
-      showMessageWithTimeout("Firebase no está inicializado o el usuario no está autenticado.");
+    if (!budgetForm.name || !budgetForm.totalHours || budgetForm.laborBreakdown.some((item) => !item.type || !item.hours)) {
+      showMessageWithTimeout('Por favor, complete todos los campos del presupuesto.');
       return false;
     }
 
-    // Validaciones
-    if (!budgetForm.name || !budgetForm.totalHours || 
-        budgetForm.laborBreakdown.some(item => !item.type || !item.hours)) {
-      showMessageWithTimeout("Por favor, complete todos los campos del presupuesto.");
-      return false;
-    }
-
-    // Validar fechas solo si ambas están presentes
     if (budgetForm.startDate && budgetForm.endDate) {
       const start = new Date(budgetForm.startDate);
       const end = new Date(budgetForm.endDate);
       if (start > end) {
-        showMessageWithTimeout("La fecha de inicio no puede ser posterior a la fecha de fin.");
+        showMessageWithTimeout('La fecha de inicio no puede ser posterior a la fecha de fin.');
         return false;
       }
     }
 
-    const budgetData = {
+    const payload = {
       name: budgetForm.name,
+      budgetNumber: budgetForm.budgetNumber || '',
+      acceptanceDate: budgetForm.acceptanceDate || '',
       totalHours: Number(budgetForm.totalHours),
-      laborBreakdown: budgetForm.laborBreakdown.map(item => ({ 
-        type: item.type, 
-        hours: Number(item.hours) 
+      laborBreakdown: budgetForm.laborBreakdown.map((item) => ({
+        type: item.type,
+        hours: Number(item.hours),
       })),
-      startDate: budgetForm.startDate,
-      endDate: budgetForm.endDate,
+      startDate: budgetForm.startDate || '',
+      endDate: budgetForm.endDate || '',
       status: budgetForm.status,
       category: budgetForm.category,
       assignedPersonnel: budgetForm.assignedPersonnel,
-      userId: userId,
+      fromAcceptedBag: Boolean(budgetForm.fromAcceptedBag),
     };
 
     try {
-      const appId = getAppId();
       if (budgetForm.id) {
-        // Actualizar
-        await updateDoc(doc(db, `artifacts/${appId}/users/${userId}/budgets`, budgetForm.id), budgetData);
-        showMessageWithTimeout("Presupuesto actualizado con éxito.");
+        await apiFetch(`/budgets/${budgetForm.id}`, { method: 'PUT', body: JSON.stringify(payload) });
+        showMessageWithTimeout('Presupuesto actualizado con éxito.');
       } else {
-        // Crear nuevo
-        await addDoc(collection(db, `artifacts/${appId}/users/${userId}/budgets`), budgetData);
-        showMessageWithTimeout("Presupuesto añadido con éxito.");
+        await apiFetch('/budgets', { method: 'POST', body: JSON.stringify(payload) });
+        showMessageWithTimeout('Presupuesto añadido con éxito.');
       }
       resetBudgetForm();
+      loadBudgets();
       return true;
-    } catch (e) {
-      console.error("Error saving budget:", e);
-      showMessageWithTimeout(`Error al guardar presupuesto: ${e.message}`);
+    } catch (error) {
+      console.error('Error saving budget:', error);
+      showMessageWithTimeout(`Error al guardar presupuesto: ${error.message}`);
       return false;
     }
-  }, [db, userId, budgetForm, showMessageWithTimeout, getAppId, resetBudgetForm]);
+  }, [budgetForm, showMessageWithTimeout, resetBudgetForm, loadBudgets]);
 
-  // Función para eliminar presupuesto
-  const deleteBudget = useCallback(async (id) => {
-    if (!db || !userId) {
-      showMessageWithTimeout("Firebase no está inicializado o el usuario no está autenticado.");
+  const saveAcceptedBudget = useCallback(async () => {
+    if (!acceptedBudgetForm.name || !acceptedBudgetForm.budgetNumber || !acceptedBudgetForm.acceptanceDate) {
+      showMessageWithTimeout('Completa nombre, número y fecha de aceptación.');
       return false;
     }
 
     try {
-      const appId = getAppId();
-      await deleteDoc(doc(db, `artifacts/${appId}/users/${userId}/budgets`, id));
-      showMessageWithTimeout("Presupuesto eliminado con éxito.");
+      await apiFetch('/accepted-budgets', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: acceptedBudgetForm.name,
+          budgetNumber: acceptedBudgetForm.budgetNumber,
+          acceptanceDate: acceptedBudgetForm.acceptanceDate,
+          status: 'Accepted',
+        }),
+      });
+      resetAcceptedBudgetForm();
+      loadAcceptedBudgets();
+      showMessageWithTimeout('Presupuesto añadido a la bolsa de aceptados.');
       return true;
-    } catch (e) {
-      console.error("Error deleting budget:", e);
-      showMessageWithTimeout(`Error al eliminar presupuesto: ${e.message}`);
+    } catch (error) {
+      console.error('Error saving accepted budget:', error);
+      showMessageWithTimeout(`Error al guardar en bolsa de aceptados: ${error.message}`);
       return false;
     }
-  }, [db, userId, showMessageWithTimeout, getAppId]);
+  }, [acceptedBudgetForm, resetAcceptedBudgetForm, loadAcceptedBudgets, showMessageWithTimeout]);
 
-  // Funciones para manejar laborBreakdown
+  const moveAcceptedToPlanning = useCallback(async (acceptedBudgetId) => {
+    const selected = acceptedBudgets.find((item) => item.id === acceptedBudgetId);
+    if (!selected) {
+      showMessageWithTimeout('No se encontró el presupuesto en la bolsa de aceptados.');
+      return false;
+    }
+
+    try {
+      await apiFetch('/budgets', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: selected.name || '',
+          budgetNumber: selected.budgetNumber || '',
+          acceptanceDate: selected.acceptanceDate || '',
+          totalHours: 0,
+          laborBreakdown: [{ type: '', hours: '' }],
+          startDate: '',
+          endDate: '',
+          status: 'Accepted',
+          category: '',
+          assignedPersonnel: [],
+          fromAcceptedBag: true,
+        }),
+      });
+      await apiFetch(`/accepted-budgets/${acceptedBudgetId}`, { method: 'DELETE' });
+      await Promise.all([loadBudgets(), loadAcceptedBudgets()]);
+      showMessageWithTimeout('Presupuesto movido a la mesa de planificación.');
+      return true;
+    } catch (error) {
+      console.error('Error moving accepted budget:', error);
+      showMessageWithTimeout(`Error al mover a planificación: ${error.message}`);
+      return false;
+    }
+  }, [acceptedBudgets, loadBudgets, loadAcceptedBudgets, showMessageWithTimeout]);
+
+  const deleteAcceptedBudget = useCallback(async (acceptedBudgetId) => {
+    try {
+      await apiFetch(`/accepted-budgets/${acceptedBudgetId}`, { method: 'DELETE' });
+      loadAcceptedBudgets();
+      showMessageWithTimeout('Presupuesto eliminado de la bolsa de aceptados.');
+      return true;
+    } catch (error) {
+      console.error('Error deleting accepted budget:', error);
+      showMessageWithTimeout(`Error al eliminar de bolsa de aceptados: ${error.message}`);
+      return false;
+    }
+  }, [loadAcceptedBudgets, showMessageWithTimeout]);
+
+  const deleteBudget = useCallback(async (id) => {
+    try {
+      await apiFetch(`/budgets/${id}`, { method: 'DELETE' });
+      loadBudgets();
+      showMessageWithTimeout('Presupuesto eliminado con éxito.');
+      return true;
+    } catch (error) {
+      console.error('Error deleting budget:', error);
+      showMessageWithTimeout(`Error al eliminar presupuesto: ${error.message}`);
+      return false;
+    }
+  }, [loadBudgets, showMessageWithTimeout]);
+
   const addLaborType = useCallback(() => {
-    setBudgetForm(prev => ({
+    setBudgetForm((prev) => ({
       ...prev,
-      laborBreakdown: [...prev.laborBreakdown, { type: '', hours: '' }]
+      laborBreakdown: [...prev.laborBreakdown, { type: '', hours: '' }],
     }));
   }, []);
 
   const updateLaborBreakdown = useCallback((index, field, value) => {
-    setBudgetForm(prev => ({
+    setBudgetForm((prev) => ({
       ...prev,
-      laborBreakdown: prev.laborBreakdown.map((item, i) =>
-        i === index ? { ...item, [field]: value } : item
-      )
+      laborBreakdown: prev.laborBreakdown.map((item, i) => (i === index ? { ...item, [field]: value } : item)),
     }));
   }, []);
 
   const removeLaborType = useCallback((index) => {
-    setBudgetForm(prev => ({
+    setBudgetForm((prev) => ({
       ...prev,
-      laborBreakdown: prev.laborBreakdown.filter((_, i) => i !== index)
+      laborBreakdown: prev.laborBreakdown.filter((_, i) => i !== index),
     }));
   }, []);
 
-  // Funciones calculadas (memoizadas)
   const totalHoursByType = useMemo(() => {
     const totals = {};
-    budgets.forEach(budget => {
+    budgets.forEach((budget) => {
       if (budget.laborBreakdown) {
-        budget.laborBreakdown.forEach(item => {
+        budget.laborBreakdown.forEach((item) => {
           const type = item.type;
           const hours = Number(item.hours);
-          if (type && !isNaN(hours)) {
+          if (type && !Number.isNaN(hours)) {
             totals[type] = (totals[type] || 0) + hours;
           }
         });
@@ -231,79 +328,62 @@ export const useBudgets = () => {
 
   const exportToCSV = useCallback((personnel = []) => {
     if (!budgets || budgets.length === 0) {
-      showMessageWithTimeout("No hay presupuestos para exportar.");
+      showMessageWithTimeout('No hay presupuestos para exportar.');
       return;
     }
 
-    const header = [
-      "Nombre",
-      "Categoría", 
-      "Estado",
-      "Inicio",
-      "Fin",
-      "Horas Totales",
-      "Personal Asignado"
-    ];
+    const header = ['Nombre', 'Categoría', 'Estado', 'Inicio', 'Fin', 'Horas Totales', 'Personal Asignado'];
 
-    const rows = budgets.map(budget => {
+    const rows = budgets.map((budget) => {
       const assigned = personnel
-        .filter(p => (budget.assignedPersonnel || []).includes(p.id))
-        .map(p => `${p.name} (${p.laborType})`)
-        .join("; ");
-      
+        .filter((p) => (budget.assignedPersonnel || []).includes(p.id))
+        .map((p) => `${p.name} (${p.laborType})`)
+        .join('; ');
+
       return [
         budget.name,
-        budget.category || "",
+        budget.category || '',
         budget.status,
         budget.startDate,
         budget.endDate,
         budget.totalHours,
-        assigned
+        assigned,
       ];
     });
 
-    const csvContent = [header, ...rows]
-      .map(row => row.map(value => `"${value}"`).join(","))
-      .join("\n");
+    const csvContent = [header, ...rows].map((row) => row.map((value) => `"${value}"`).join(',')).join('\n');
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.href = url;
-    link.setAttribute("download", "presupuestos_exportados.csv");
+    link.setAttribute('download', 'presupuestos_exportados.csv');
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   }, [budgets, showMessageWithTimeout]);
 
   return {
-    // Estado
     budgets,
+    acceptedBudgets,
     budgetForm,
+    acceptedBudgetForm,
     selectedCategory,
-    
-    // Funciones de formulario
     updateBudgetForm,
+    updateAcceptedBudgetForm,
     resetBudgetForm,
     editBudget,
     useBudgetAsTemplate,
-    
-    // Operaciones CRUD
     saveBudget,
+    saveAcceptedBudget,
     deleteBudget,
-    
-    // Labor breakdown
+    moveAcceptedToPlanning,
+    deleteAcceptedBudget,
     addLaborType,
     updateLaborBreakdown,
     removeLaborType,
-    
-    // Filtros
     setSelectedCategory,
-    
-    // Datos calculados
     totalHoursByType,
-    
-    // Utilidades
     exportToCSV,
   };
 };

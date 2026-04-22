@@ -24,13 +24,19 @@ function BudgetDashboard() {
   // Extraer datos y funciones de los hooks
   const {
     budgets,
+    acceptedBudgets,
     budgetForm,
+    acceptedBudgetForm,
     selectedCategory,
     updateBudgetForm,
+    updateAcceptedBudgetForm,
     editBudget,
     useBudgetAsTemplate,
     saveBudget,
+    saveAcceptedBudget,
     deleteBudget,
+    moveAcceptedToPlanning,
+    deleteAcceptedBudget,
     addLaborType,
     updateLaborBreakdown,
     removeLaborType,
@@ -123,8 +129,84 @@ function BudgetDashboard() {
       {/* Columna Izquierda: Gestión y Lista de Presupuestos */}
       <div className="flex-1 space-y-8">
         <div className="bg-gray-100 p-6 rounded-xl shadow-lg border border-gray-300">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4 border-b pb-3 border-gray-400">
+            Bolsa de Presupuestos Aceptados
+          </h2>
+          <p className="text-sm text-gray-600 mb-4">
+            Alta rápida sin planificación completa. Luego puedes pasarlos a la mesa de planificación.
+          </p>
+          <div className="space-y-4 mb-6">
+            <div>
+              <label htmlFor="acceptedBudgetName" className="block text-sm font-medium text-gray-700">Nombre</label>
+              <input
+                type="text"
+                id="acceptedBudgetName"
+                className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                value={acceptedBudgetForm.name}
+                onChange={(e) => updateAcceptedBudgetForm('name', e.target.value)}
+                placeholder="Ej. Reforma Nave Industrial"
+              />
+            </div>
+            <div>
+              <label htmlFor="acceptedBudgetNumber" className="block text-sm font-medium text-gray-700">Numero de presupuesto</label>
+              <input
+                type="text"
+                id="acceptedBudgetNumber"
+                className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                value={acceptedBudgetForm.budgetNumber}
+                onChange={(e) => updateAcceptedBudgetForm('budgetNumber', e.target.value)}
+                placeholder="Ej. P-2026-014"
+              />
+            </div>
+            <div>
+              <label htmlFor="acceptedBudgetDate" className="block text-sm font-medium text-gray-700">Fecha de aceptacion</label>
+              <input
+                type="date"
+                id="acceptedBudgetDate"
+                className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                value={acceptedBudgetForm.acceptanceDate}
+                onChange={(e) => updateAcceptedBudgetForm('acceptanceDate', e.target.value)}
+              />
+            </div>
+            <button
+              onClick={saveAcceptedBudget}
+              className="w-full bg-emerald-600 text-white py-2 px-4 rounded-md hover:bg-emerald-700 transition duration-300 ease-in-out shadow-md"
+            >
+              Guardar en bolsa de aceptados
+            </button>
+          </div>
+          {acceptedBudgets.length === 0 ? (
+            <p className="text-gray-500">No hay presupuestos en la bolsa.</p>
+          ) : (
+            <div className="space-y-3">
+              {acceptedBudgets.map((accepted) => (
+                <div key={accepted.id} className="bg-emerald-50 p-4 rounded-lg border border-emerald-200">
+                  <p className="text-base font-semibold text-emerald-800">{accepted.name || 'Sin nombre'}</p>
+                  <p className="text-sm text-gray-700">Numero: {accepted.budgetNumber || '-'}</p>
+                  <p className="text-sm text-gray-700">Aceptacion: {accepted.acceptanceDate || '-'}</p>
+                  <div className="mt-3 flex flex-col sm:flex-row gap-2">
+                    <button
+                      onClick={() => moveAcceptedToPlanning(accepted.id)}
+                      className="flex-1 bg-indigo-600 text-white py-1 px-3 rounded-md hover:bg-indigo-700 transition duration-300 ease-in-out text-sm shadow-sm"
+                    >
+                      Pasar a mesa de planificacion
+                    </button>
+                    <button
+                      onClick={() => deleteAcceptedBudget(accepted.id)}
+                      className="flex-1 bg-red-500 text-white py-1 px-3 rounded-md hover:bg-red-600 transition duration-300 ease-in-out text-sm shadow-sm"
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="bg-gray-100 p-6 rounded-xl shadow-lg border border-gray-300">
           <h2 className="text-2xl font-bold text-gray-800 mb-6 border-b pb-3 border-gray-400">
-            📝 Gestión de Presupuestos
+            Mesa de Planificacion
           </h2>
           {/* FORMULARIO DE PRESUPUESTOS */}
           <div className="space-y-4 mb-6">
@@ -427,7 +509,7 @@ function BudgetDashboard() {
       <div className="flex-1 space-y-8">
         <div className="bg-gray-100 p-6 rounded-xl shadow-lg border border-gray-300">
           <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2 border-gray-400">
-            📝 Lista de Presupuestos
+            Lista de Presupuestos en Planificacion
           </h2>
           <button
             onClick={() => exportToCSV(personnel)}
@@ -460,6 +542,8 @@ function BudgetDashboard() {
                 return (
                 <div key={budget.id} className="bg-blue-50 p-4 rounded-lg shadow-sm border border-blue-100">
                   <p className="text-lg font-semibold text-blue-800">{budget.name} ({budget.status})</p>
+                  <p className="text-sm text-gray-600">Numero: {budget.budgetNumber || '-'}</p>
+                  <p className="text-sm text-gray-600">Fecha de aceptacion: {budget.acceptanceDate || '-'}</p>
                   <p className="text-sm text-gray-600">Horas Totales: {budget.totalHours}</p>
                   <p className="text-sm text-gray-600">Inicio: {budget.startDate} | Fin: {budget.endDate}</p>
                   {assignedPeople.length > 0 && (
