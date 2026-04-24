@@ -2,7 +2,7 @@
 
 Aplicación web para gestionar presupuestos, personal y capacidad operativa.
 
-Estado actual: arquitectura local desacoplada en **frontend + backend + SQLite** ejecutada con Docker Compose.
+Estado actual: arquitectura desacoplada en **frontend + backend + SQLite** ejecutada con Docker Compose.
 
 ## Arquitectura
 
@@ -64,6 +64,10 @@ Estado actual: arquitectura local desacoplada en **frontend + backend + SQLite**
 
 Requisito: Docker + Docker Compose.
 
+### Local (sin Traefik)
+
+Se usa `docker-compose.override.yml` para exponer el puerto local. Ese fichero **no se versiona** (está en `.gitignore`).
+
 1. Construir y levantar:
 ```bash
 docker compose up --build -d
@@ -82,12 +86,17 @@ docker compose logs -f planificador-api
 4. Acceso aplicación:
 - Frontend: `http://localhost:8086`
 
+### Producción (con Traefik)
+
+El `docker-compose.yml` está pensado para ejecutarse detrás de Traefik en una red externa `traefik_default` y no publica puertos directamente.
+
 ## Estructura relevante
 
 - `src/` frontend React
 - `backend/src/server.js` API Express + SQLite
 - `backend/data/` fichero SQLite persistente
-- `docker-compose.yml` orquestación de servicios
+- `docker-compose.yml` Compose de producción (Traefik)
+- `docker-compose.override.yml` ajustes locales (puertos/depends_on)
 - `nginx.conf` proxy `/api` y fallback SPA
 
 ## Roadmap corto

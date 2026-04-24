@@ -81,3 +81,19 @@ Consolidación de arquitectura local y actualización de documentación.
 - Implementar autenticación backend real.
 - Añadir pruebas automáticas de API y frontend.
 - Definir reglas de validación avanzada de negocio para planificación.
+
+## v0.4 - 2026-04-24
+
+### Tipo de release
+Limpieza de dependencias y separación de Compose por entorno (local vs producción).
+
+### Cambios aplicados
+- Eliminación de Firebase del proyecto (dependencia `firebase` y código asociado).
+- Renombrado del hook de auth local a `useLocalAuth` (sin referencias a Firebase en runtime).
+- `docker-compose.yml` orientado a producción con Traefik (red externa `traefik_default` + labels).
+- Nuevo `docker-compose.override.yml` para entorno local (puertos `8086:80` y `depends_on`).
+- Documentación actualizada (`README.md`, `context.md`).
+
+### Pendientes
+- Implementar autenticación backend real (sesión/roles/permisos).
+- Añadir suite de pruebas automáticas (API y frontend).

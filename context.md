@@ -3,7 +3,7 @@
 ## Resumen
 **Planificador de Recursos y Presupuestos** es una aplicación web para gestionar presupuestos, personal y planificación de capacidad.
 
-A fecha **2026-04-22**, el proyecto funciona en local con arquitectura desacoplada:
+A fecha **2026-04-24**, el proyecto funciona con arquitectura desacoplada:
 - Frontend React
 - Backend Express
 - Base de datos SQLite
@@ -41,6 +41,11 @@ A fecha **2026-04-22**, el proyecto funciona en local con arquitectura desacopla
   - Reverse proxy de `/api` al backend
 - `planificador-api`
   - API Express + SQLite
+  - Persistencia en `./backend/data`
+
+### Compose (local vs producción)
+- `docker-compose.yml` (producción): preparado para Traefik (red externa `traefik_default` + labels).
+- `docker-compose.override.yml` (local, no versionado): expone `8086:80` y define `depends_on` para simplificar el arranque local sin Traefik.
 
 ## Estructura principal
 - `src/App.jsx`: composición de vistas/proveedores.
@@ -85,9 +90,9 @@ A fecha **2026-04-22**, el proyecto funciona en local con arquitectura desacopla
 - `status`
 
 ## Estado y decisiones actuales
-- Se abandonó Firebase como almacenamiento operativo para priorizar estabilidad local.
+- Se eliminó Firebase del runtime (datos y dependencias) para priorizar estabilidad local.
 - Persistencia unificada en SQLite para facilitar pruebas, backup y control de datos.
-- La autenticación está en modo temporal simplificado y pendiente de endurecimiento.
+- La autenticación está en modo local simplificado (frontend) y pendiente de endurecimiento en backend.
 
 ## Carencias técnicas activas
 - Falta autenticación backend real (sesiones/roles/permisos).
