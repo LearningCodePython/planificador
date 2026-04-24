@@ -9,7 +9,7 @@ import AuthForm from './AuthForm'; // Crearemos este componente a continuación
 const AuthWrapper = ({ children }) => {
   const { user, isAuthReady } = useAppContext();
 
-  // Muestra un spinner o un mensaje mientras Firebase comprueba el estado de auth
+  // Muestra un spinner o un mensaje mientras se inicializa el estado de auth
   if (!isAuthReady) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-100">

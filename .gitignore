@@ -34,6 +34,7 @@ yarn-error.log*
 # Elementos docker no vigilados
 docker-compose.*
 !docker-compose.yml
+docker-compose.override.yml
 
 # Base de datos local
 backend/data/*.sqlite

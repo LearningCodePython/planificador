@@ -1,5 +1,5 @@
 import React, { createContext, useContext } from 'react';
-import { useFirebase } from '../hooks/useFirebase';
+import { useLocalAuth } from '../hooks/useLocalAuth';
 import { useMessage } from '../hooks/useMessage';
 
 /**
@@ -8,7 +8,7 @@ import { useMessage } from '../hooks/useMessage';
  * ¿Qué conseguimos?
  * - Estado global accesible desde cualquier componente
  * - Eliminar "props drilling" 
- * - Centralizar la lógica común (Firebase, mensajes)
+ * - Centralizar la lógica común (auth local, mensajes)
  * - Mejor organización del código
  */
 
@@ -34,17 +34,15 @@ export const AppProvider = ({ children }) => {
     hideMessage 
   } = useMessage();
 
-  // Hook personalizado para Firebase
-  const { 
-    db, 
-    auth, 
+  // Hook de autenticación local (temporal)
+  const {
     user,
     userId, 
     isAuthReady,
     signUp,
     signIn,
     logOut
-  } = useFirebase(showMessageWithTimeout);
+  } = useLocalAuth(showMessageWithTimeout);
 
   // Función helper para obtener el appId
   const getAppId = () => {
@@ -55,9 +53,7 @@ export const AppProvider = ({ children }) => {
 
   // Valores que se compartirán con todos los componentes hijos
   const contextValue = {
-    // Firebase
-    db,
-    auth,
+    // Auth
     user,
     userId,
     isAuthReady,

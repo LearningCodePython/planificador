@@ -31,7 +31,7 @@ const AuthForm = () => {
         setIsLogin(true); // Cambia a la vista de login después del registro
       }
     } catch (error) {
-      // El hook useFirebase ya muestra un mensaje de error detallado
+      // El hook de auth ya muestra un mensaje de error detallado
       console.error(error);
     } finally {
       setIsLoading(false);

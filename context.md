@@ -48,7 +48,7 @@ A fecha **2026-04-22**, el proyecto funciona en local con arquitectura desacopla
 - `src/PersonnelManager.jsx`: gestión de personal.
 - `src/hooks/useBudgets.js`: integración completa con API de presupuestos y bolsa.
 - `src/hooks/usePersonnel.js`: integración con API de personal.
-- `src/hooks/useFirebase.js`: autenticación local simplificada temporal.
+- `src/hooks/useLocalAuth.js`: autenticación local simplificada temporal.
 - `backend/src/server.js`: backend Express y acceso SQLite.
 - `backend/data/planificador.sqlite`: persistencia local.
 - `docker-compose.yml`: servicios `planificador-web` y `planificador-api`.

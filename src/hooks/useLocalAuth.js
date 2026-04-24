@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 
-export const useFirebase = () => {
+export const useLocalAuth = () => {
   const [user, setUser] = useState(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
 
@@ -27,8 +27,6 @@ export const useFirebase = () => {
   }, []);
 
   return {
-    db: null,
-    auth: null,
     user,
     userId: user ? user.uid : null,
     isAuthReady,
@@ -37,3 +35,4 @@ export const useFirebase = () => {
     logOut,
   };
 };
+
