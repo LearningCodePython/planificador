@@ -3,11 +3,18 @@ import { useAppContext } from '../contexts/AppContext';
 
 const apiFetch = async (path, options = {}) => {
   const response = await fetch(`/api${path}`, {
+    credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
     ...options,
   });
 
   if (!response.ok) {
+    if (response.status === 401) {
+      const error = new Error('Unauthorized');
+      error.code = 'unauthorized';
+      error.status = 401;
+      throw error;
+    }
     let message = `HTTP ${response.status}`;
     try {
       const data = await response.json();
@@ -28,10 +35,17 @@ const apiUploadPdf = async (path, file) => {
 
   const response = await fetch(`/api${path}`, {
     method: 'POST',
+    credentials: 'same-origin',
     body: formData,
   });
 
   if (!response.ok) {
+    if (response.status === 401) {
+      const error = new Error('Unauthorized');
+      error.code = 'unauthorized';
+      error.status = 401;
+      throw error;
+    }
     let message = `HTTP ${response.status}`;
     try {
       const data = await response.json();
@@ -46,7 +60,7 @@ const apiUploadPdf = async (path, file) => {
 };
 
 export const useBudgets = () => {
-  const { showMessageWithTimeout } = useAppContext();
+  const { showMessageWithTimeout, logOut } = useAppContext();
 
   const [budgets, setBudgets] = useState([]);
   const [acceptedBudgets, setAcceptedBudgets] = useState([]);
@@ -84,9 +98,14 @@ export const useBudgets = () => {
       setBudgets(data || []);
     } catch (error) {
       console.error('Error loading budgets:', error);
+      if (error.code === 'unauthorized') {
+        await logOut();
+        showMessageWithTimeout('Sesión expirada. Inicia sesión de nuevo.');
+        return;
+      }
       showMessageWithTimeout(`Error al cargar presupuestos: ${error.message}`);
     }
-  }, [showMessageWithTimeout]);
+  }, [showMessageWithTimeout, logOut]);
 
   const loadAcceptedBudgets = useCallback(async () => {
     try {
@@ -94,9 +113,14 @@ export const useBudgets = () => {
       setAcceptedBudgets(data || []);
     } catch (error) {
       console.error('Error loading accepted budgets:', error);
+      if (error.code === 'unauthorized') {
+        await logOut();
+        showMessageWithTimeout('Sesión expirada. Inicia sesión de nuevo.');
+        return;
+      }
       showMessageWithTimeout(`Error al cargar bolsa de aceptados: ${error.message}`);
     }
-  }, [showMessageWithTimeout]);
+  }, [showMessageWithTimeout, logOut]);
 
   useEffect(() => {
     loadBudgets();
@@ -234,10 +258,15 @@ export const useBudgets = () => {
       return true;
     } catch (error) {
       console.error('Error saving budget:', error);
+      if (error.code === 'unauthorized') {
+        await logOut();
+        showMessageWithTimeout('Sesión expirada. Inicia sesión de nuevo.');
+        return false;
+      }
       showMessageWithTimeout(`Error al guardar presupuesto: ${error.message}`);
       return false;
     }
-  }, [budgetForm, showMessageWithTimeout, resetBudgetForm, loadBudgets]);
+  }, [budgetForm, showMessageWithTimeout, resetBudgetForm, loadBudgets, logOut]);
 
   const saveAcceptedBudget = useCallback(async () => {
     if (!acceptedBudgetForm.name || !acceptedBudgetForm.budgetNumber || !acceptedBudgetForm.acceptanceDate) {
@@ -278,6 +307,11 @@ export const useBudgets = () => {
       return true;
     } catch (error) {
       console.error('Error saving accepted budget:', error);
+      if (error.code === 'unauthorized') {
+        await logOut();
+        showMessageWithTimeout('Sesión expirada. Inicia sesión de nuevo.');
+        return false;
+      }
       showMessageWithTimeout(`Error al guardar en bolsa de aceptados: ${error.message}`);
       return false;
     }
@@ -287,6 +321,7 @@ export const useBudgets = () => {
     resetAcceptedBudgetForm,
     loadAcceptedBudgets,
     showMessageWithTimeout,
+    logOut,
   ]);
 
   const editAcceptedBudget = useCallback((accepted) => {
@@ -335,10 +370,15 @@ export const useBudgets = () => {
       return true;
     } catch (error) {
       console.error('Error moving accepted budget:', error);
+      if (error.code === 'unauthorized') {
+        await logOut();
+        showMessageWithTimeout('Sesión expirada. Inicia sesión de nuevo.');
+        return false;
+      }
       showMessageWithTimeout(`Error al mover a planificación: ${error.message}`);
       return false;
     }
-  }, [acceptedBudgets, loadBudgets, loadAcceptedBudgets, showMessageWithTimeout]);
+  }, [acceptedBudgets, loadBudgets, loadAcceptedBudgets, showMessageWithTimeout, logOut]);
 
   const deleteAcceptedBudget = useCallback(async (acceptedBudgetId) => {
     try {
@@ -348,10 +388,15 @@ export const useBudgets = () => {
       return true;
     } catch (error) {
       console.error('Error deleting accepted budget:', error);
+      if (error.code === 'unauthorized') {
+        await logOut();
+        showMessageWithTimeout('Sesión expirada. Inicia sesión de nuevo.');
+        return false;
+      }
       showMessageWithTimeout(`Error al eliminar de bolsa de aceptados: ${error.message}`);
       return false;
     }
-  }, [loadAcceptedBudgets, showMessageWithTimeout]);
+  }, [loadAcceptedBudgets, showMessageWithTimeout, logOut]);
 
   const deleteBudget = useCallback(async (id) => {
     try {
@@ -361,10 +406,15 @@ export const useBudgets = () => {
       return true;
     } catch (error) {
       console.error('Error deleting budget:', error);
+      if (error.code === 'unauthorized') {
+        await logOut();
+        showMessageWithTimeout('Sesión expirada. Inicia sesión de nuevo.');
+        return false;
+      }
       showMessageWithTimeout(`Error al eliminar presupuesto: ${error.message}`);
       return false;
     }
-  }, [loadBudgets, showMessageWithTimeout]);
+  }, [loadBudgets, showMessageWithTimeout, logOut]);
 
   const moveBudgetToAcceptedBag = useCallback(async (budgetId) => {
     const selected = budgets.find((item) => item.id === budgetId);
@@ -396,10 +446,15 @@ export const useBudgets = () => {
       return true;
     } catch (error) {
       console.error('Error returning budget to accepted bag:', error);
+      if (error.code === 'unauthorized') {
+        await logOut();
+        showMessageWithTimeout('Sesión expirada. Inicia sesión de nuevo.');
+        return false;
+      }
       showMessageWithTimeout(`Error al devolver a bolsa: ${error.message}`);
       return false;
     }
-  }, [budgets, loadBudgets, loadAcceptedBudgets, showMessageWithTimeout]);
+  }, [budgets, loadBudgets, loadAcceptedBudgets, showMessageWithTimeout, logOut]);
 
   const addLaborType = useCallback(() => {
     setBudgetForm((prev) => ({

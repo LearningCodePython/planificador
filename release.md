@@ -95,8 +95,9 @@ Limpieza de dependencias y separación de Compose por entorno (local vs producci
 - Documentación actualizada (`README.md`, `context.md`).
 
 ### Pendientes
-- Implementar autenticación backend real (sesión/roles/permisos).
-- Añadir suite de pruebas automáticas (API y frontend).
+- Busqueda por numero de presupuesto
+- Añadir edicion de presupuestos en bolsa de trabajo
+- Devolver el presupuesto en de la mesa de edicion a la bolsa de presupuestos
 
 ## v0.5 - 2026-04-25
 
@@ -112,9 +113,6 @@ Mejoras de usabilidad y flujo entre bolsa y mesa de planificación.
 ### Pendientes
 - La posibilidad de subir el PDF del presupuesto cuando se crea en la bolsa de presupuestos.
 - Añadir el campo de `#Ticket` asociado (relacionado con la plataforma externa de gestión de tickets).
-- Implementar autenticación backend real (sesión/roles/permisos).
-- Añadir suite de pruebas automáticas (API y frontend).
-- Ver la posibilidad de API para conectar a automatización N8N.
 
 ## v0.6 - 2026-04-25
 
@@ -130,6 +128,9 @@ Adjuntos y trazabilidad externa: PDF asociado + campo `#Ticket`.
   - `POST /api/budgets/:id/pdf`, `GET /api/budgets/:id/pdf`, `DELETE /api/budgets/:id/pdf`
 - Persistencia: metadatos `pdfFilename/pdfOriginalName` en SQLite y ficheros en volumen `/app/upload/pdfs`.
 - Movimientos bolsa ↔ mesa: se conserva `#Ticket` y la referencia al PDF (no se borra el fichero si sigue referenciado).
+- Backend: autenticación real por sesión (cookie HttpOnly) + roles/permisos (admin/editor/viewer).
 
 ### Pendientes
 - Definir validación/tamaño máximo y política de retención de adjuntos.
+- Añadir suite de pruebas automáticas (API y frontend).
+- Ver la posibilidad de API para conectar a automatización N8N.

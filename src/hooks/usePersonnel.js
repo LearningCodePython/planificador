@@ -3,11 +3,18 @@ import { useAppContext } from '../contexts/AppContext';
 
 const apiFetch = async (path, options = {}) => {
   const response = await fetch(`/api${path}`, {
+    credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
     ...options,
   });
 
   if (!response.ok) {
+    if (response.status === 401) {
+      const error = new Error('Unauthorized');
+      error.code = 'unauthorized';
+      error.status = 401;
+      throw error;
+    }
     let message = `HTTP ${response.status}`;
     try {
       const data = await response.json();
@@ -23,7 +30,7 @@ const apiFetch = async (path, options = {}) => {
 };
 
 export const usePersonnel = () => {
-  const { showMessageWithTimeout } = useAppContext();
+  const { showMessageWithTimeout, logOut } = useAppContext();
 
   const [personnel, setPersonnel] = useState([]);
 
@@ -41,9 +48,14 @@ export const usePersonnel = () => {
       setPersonnel(data || []);
     } catch (error) {
       console.error('Error loading personnel:', error);
+      if (error.code === 'unauthorized') {
+        await logOut();
+        showMessageWithTimeout('Sesión expirada. Inicia sesión de nuevo.');
+        return;
+      }
       showMessageWithTimeout(`Error al cargar personal: ${error.message}`);
     }
-  }, [showMessageWithTimeout]);
+  }, [showMessageWithTimeout, logOut]);
 
   useEffect(() => {
     loadPersonnel();
@@ -99,10 +111,15 @@ export const usePersonnel = () => {
       return true;
     } catch (error) {
       console.error('Error saving personnel:', error);
+      if (error.code === 'unauthorized') {
+        await logOut();
+        showMessageWithTimeout('Sesión expirada. Inicia sesión de nuevo.');
+        return false;
+      }
       showMessageWithTimeout(`Error al guardar personal: ${error.message}`);
       return false;
     }
-  }, [personnelForm, showMessageWithTimeout, resetPersonnelForm, loadPersonnel]);
+  }, [personnelForm, showMessageWithTimeout, resetPersonnelForm, loadPersonnel, logOut]);
 
   const deletePersonnel = useCallback(async (id) => {
     try {
@@ -112,10 +129,15 @@ export const usePersonnel = () => {
       return true;
     } catch (error) {
       console.error('Error deleting personnel:', error);
+      if (error.code === 'unauthorized') {
+        await logOut();
+        showMessageWithTimeout('Sesión expirada. Inicia sesión de nuevo.');
+        return false;
+      }
       showMessageWithTimeout(`Error al eliminar personal: ${error.message}`);
       return false;
     }
-  }, [showMessageWithTimeout, loadPersonnel]);
+  }, [showMessageWithTimeout, loadPersonnel, logOut]);
 
   return {
     personnel,

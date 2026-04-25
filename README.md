@@ -111,6 +111,26 @@ Endpoints:
 - `GET /api/budgets/:id/pdf`
 - `DELETE /api/budgets/:id/pdf`
 
+## Autenticación (backend)
+
+La API está protegida con **sesión backend** (cookie HttpOnly `planificador_session`) y **roles/permisos**.
+
+Endpoints:
+- `GET /api/auth/me`
+- `POST /api/auth/login`
+- `POST /api/auth/signup`
+- `POST /api/auth/logout`
+- Admin: `GET/POST /api/auth/users`
+
+Roles seed por defecto:
+- `admin`: acceso total.
+- `editor`: CRUD de presupuestos/personal/bolsa y PDFs.
+- `viewer`: solo lectura.
+
+Bootstrap de admin (primer arranque, BD vacía):
+- Si defines `BOOTSTRAP_ADMIN_EMAIL` y `BOOTSTRAP_ADMIN_PASSWORD`, se crea ese admin.
+- Si no, se crea `admin@planificador.local` con contraseña aleatoria (se imprime en logs del backend).
+
 ## Estructura relevante
 
 - `src/` frontend React
@@ -122,7 +142,6 @@ Endpoints:
 
 ## Roadmap corto
 
-- Añadir autenticación real en backend (sesión/usuarios).
 - Incorporar pruebas automáticas (API y frontend).
 - Mejorar validaciones de negocio y trazabilidad de cambios.
 

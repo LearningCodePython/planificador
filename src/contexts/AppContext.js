@@ -1,5 +1,5 @@
 import React, { createContext, useContext } from 'react';
-import { useLocalAuth } from '../hooks/useLocalAuth';
+import { useBackendAuth } from '../hooks/useBackendAuth';
 import { useMessage } from '../hooks/useMessage';
 
 /**
@@ -34,7 +34,7 @@ export const AppProvider = ({ children }) => {
     hideMessage 
   } = useMessage();
 
-  // Hook de autenticación local (temporal)
+  // Hook de autenticación backend (sesión/roles/permisos)
   const {
     user,
     userId, 
@@ -42,7 +42,7 @@ export const AppProvider = ({ children }) => {
     signUp,
     signIn,
     logOut
-  } = useLocalAuth(showMessageWithTimeout);
+  } = useBackendAuth(showMessageWithTimeout);
 
   // Función helper para obtener el appId
   const getAppId = () => {

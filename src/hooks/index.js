@@ -1,6 +1,7 @@
 // Archivo índice para facilitar las importaciones de hooks
 export { useMessage } from './useMessage';
 export { useLocalAuth } from './useLocalAuth';
+export { useBackendAuth } from './useBackendAuth';
 export { useBudgets } from './useBudgets';
 export { usePersonnel } from './usePersonnel';
 
