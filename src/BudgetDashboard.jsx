@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 // HOOKS PERSONALIZADOS
@@ -30,13 +30,16 @@ function BudgetDashboard() {
     selectedCategory,
     updateBudgetForm,
     updateAcceptedBudgetForm,
+    resetAcceptedBudgetForm,
     editBudget,
     useBudgetAsTemplate,
     saveBudget,
     saveAcceptedBudget,
     deleteBudget,
+    editAcceptedBudget,
     moveAcceptedToPlanning,
     deleteAcceptedBudget,
+    moveBudgetToAcceptedBag,
     addLaborType,
     updateLaborBreakdown,
     removeLaborType,
@@ -46,6 +49,14 @@ function BudgetDashboard() {
   } = budgetHook;
 
   const { personnel } = personnelHook;
+
+  const [acceptedBudgetSearch, setAcceptedBudgetSearch] = useState('');
+
+  const filteredAcceptedBudgets = useMemo(() => {
+    const query = acceptedBudgetSearch.trim().toLowerCase();
+    if (!query) return acceptedBudgets;
+    return acceptedBudgets.filter((item) => (item.budgetNumber || '').toLowerCase().includes(query));
+  }, [acceptedBudgets, acceptedBudgetSearch]);
 
   // Cálculos memoizados para optimizar rendimiento
   const filteredBudgets = useMemo(() => {
@@ -172,19 +183,48 @@ function BudgetDashboard() {
               onClick={saveAcceptedBudget}
               className="w-full bg-emerald-600 text-white py-2 px-4 rounded-md hover:bg-emerald-700 transition duration-300 ease-in-out shadow-md"
             >
-              Guardar en bolsa de aceptados
+              {acceptedBudgetForm.id ? 'Actualizar presupuesto en bolsa' : 'Guardar en bolsa de aceptados'}
             </button>
+            {acceptedBudgetForm.id && (
+              <button
+                onClick={resetAcceptedBudgetForm}
+                className="w-full bg-gray-300 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-400 transition duration-300 ease-in-out shadow-md"
+              >
+                Cancelar edición
+              </button>
+            )}
           </div>
-          {acceptedBudgets.length === 0 ? (
-            <p className="text-gray-500">No hay presupuestos en la bolsa.</p>
+          <div className="mb-4">
+            <label htmlFor="acceptedBudgetSearch" className="block text-sm font-medium text-gray-700">
+              Buscar por número de presupuesto
+            </label>
+            <input
+              id="acceptedBudgetSearch"
+              type="text"
+              value={acceptedBudgetSearch}
+              onChange={(e) => setAcceptedBudgetSearch(e.target.value)}
+              placeholder="Ej. 2026-001"
+              className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          {filteredAcceptedBudgets.length === 0 ? (
+            <p className="text-gray-500">
+              {acceptedBudgets.length === 0 ? 'No hay presupuestos en la bolsa.' : 'No hay coincidencias con esa búsqueda.'}
+            </p>
           ) : (
             <div className="space-y-3">
-              {acceptedBudgets.map((accepted) => (
+              {filteredAcceptedBudgets.map((accepted) => (
                 <div key={accepted.id} className="bg-emerald-50 p-4 rounded-lg border border-emerald-200">
                   <p className="text-base font-semibold text-emerald-800">{accepted.name || 'Sin nombre'}</p>
                   <p className="text-sm text-gray-700">Numero: {accepted.budgetNumber || '-'}</p>
                   <p className="text-sm text-gray-700">Aceptacion: {accepted.acceptanceDate || '-'}</p>
                   <div className="mt-3 flex flex-col sm:flex-row gap-2">
+                    <button
+                      onClick={() => editAcceptedBudget(accepted)}
+                      className="flex-1 bg-yellow-500 text-white py-1 px-3 rounded-md hover:bg-yellow-600 transition duration-300 ease-in-out text-sm shadow-sm"
+                    >
+                      Editar
+                    </button>
                     <button
                       onClick={() => moveAcceptedToPlanning(accepted.id)}
                       className="flex-1 bg-indigo-600 text-white py-1 px-3 rounded-md hover:bg-indigo-700 transition duration-300 ease-in-out text-sm shadow-sm"
@@ -570,6 +610,15 @@ function BudgetDashboard() {
                       className="flex-1 bg-yellow-500 text-white py-1 px-3 rounded-md hover:bg-yellow-600 transition duration-300 ease-in-out text-sm shadow-sm"
                     >
                       Editar
+                    </button>
+                    <button
+                      onClick={() => {
+                        const ok = window.confirm('Devolverá el presupuesto a la bolsa conservando horas/desglose (se perderán fechas) y lo eliminará de la mesa de planificación. ¿Continuar?');
+                        if (ok) moveBudgetToAcceptedBag(budget.id);
+                      }}
+                      className="flex-1 bg-emerald-600 text-white py-1 px-3 rounded-md hover:bg-emerald-700 transition duration-300 ease-in-out text-sm shadow-sm"
+                    >
+                      Devolver a bolsa
                     </button>
                     <button
                       onClick={() => deleteBudget(budget.id)}

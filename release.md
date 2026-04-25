@@ -97,3 +97,18 @@ Limpieza de dependencias y separación de Compose por entorno (local vs producci
 ### Pendientes
 - Implementar autenticación backend real (sesión/roles/permisos).
 - Añadir suite de pruebas automáticas (API y frontend).
+
+## v0.5 - 2026-04-25
+
+### Tipo de release
+Mejoras de usabilidad y flujo entre bolsa y mesa de planificación.
+
+### Cambios aplicados
+- Bolsa de aceptados: edición de presupuestos existentes.
+- Bolsa de aceptados: búsqueda por número de presupuesto.
+- Mesa de planificación: devolución de presupuestos a la bolsa conservando horas/desglose/personal/categoría (se eliminan fechas).
+- Backend: ampliación automática de `accepted_budgets` para persistir campos de planificación (migración con `ALTER TABLE` al arrancar).
+
+### Pendientes
+- Implementar autenticación backend real (sesión/roles/permisos).
+- Añadir suite de pruebas automáticas (API y frontend).

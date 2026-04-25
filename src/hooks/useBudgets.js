@@ -30,6 +30,7 @@ export const useBudgets = () => {
   const [selectedCategory, setSelectedCategory] = useState('Todas');
 
   const [acceptedBudgetForm, setAcceptedBudgetForm] = useState({
+    id: null,
     name: '',
     budgetNumber: '',
     acceptanceDate: '',
@@ -84,6 +85,7 @@ export const useBudgets = () => {
 
   const resetAcceptedBudgetForm = useCallback(() => {
     setAcceptedBudgetForm({
+      id: null,
       name: '',
       budgetNumber: '',
       acceptanceDate: '',
@@ -208,18 +210,28 @@ export const useBudgets = () => {
     }
 
     try {
-      await apiFetch('/accepted-budgets', {
-        method: 'POST',
-        body: JSON.stringify({
-          name: acceptedBudgetForm.name,
-          budgetNumber: acceptedBudgetForm.budgetNumber,
-          acceptanceDate: acceptedBudgetForm.acceptanceDate,
-          status: 'Accepted',
-        }),
-      });
+      const payload = {
+        name: acceptedBudgetForm.name,
+        budgetNumber: acceptedBudgetForm.budgetNumber,
+        acceptanceDate: acceptedBudgetForm.acceptanceDate,
+        status: 'Accepted',
+      };
+
+      if (acceptedBudgetForm.id) {
+        await apiFetch(`/accepted-budgets/${acceptedBudgetForm.id}`, {
+          method: 'PUT',
+          body: JSON.stringify(payload),
+        });
+        showMessageWithTimeout('Presupuesto de la bolsa actualizado.');
+      } else {
+        await apiFetch('/accepted-budgets', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+        showMessageWithTimeout('Presupuesto añadido a la bolsa de aceptados.');
+      }
       resetAcceptedBudgetForm();
       loadAcceptedBudgets();
-      showMessageWithTimeout('Presupuesto añadido a la bolsa de aceptados.');
       return true;
     } catch (error) {
       console.error('Error saving accepted budget:', error);
@@ -227,6 +239,15 @@ export const useBudgets = () => {
       return false;
     }
   }, [acceptedBudgetForm, resetAcceptedBudgetForm, loadAcceptedBudgets, showMessageWithTimeout]);
+
+  const editAcceptedBudget = useCallback((accepted) => {
+    setAcceptedBudgetForm({
+      id: accepted.id,
+      name: accepted.name || '',
+      budgetNumber: accepted.budgetNumber || '',
+      acceptanceDate: accepted.acceptanceDate || '',
+    });
+  }, []);
 
   const moveAcceptedToPlanning = useCallback(async (acceptedBudgetId) => {
     const selected = acceptedBudgets.find((item) => item.id === acceptedBudgetId);
@@ -242,13 +263,13 @@ export const useBudgets = () => {
           name: selected.name || '',
           budgetNumber: selected.budgetNumber || '',
           acceptanceDate: selected.acceptanceDate || '',
-          totalHours: 0,
-          laborBreakdown: [{ type: '', hours: '' }],
+          totalHours: Number(selected.totalHours || 0),
+          laborBreakdown: selected.laborBreakdown || [],
           startDate: '',
           endDate: '',
           status: 'Accepted',
-          category: '',
-          assignedPersonnel: [],
+          category: selected.category || '',
+          assignedPersonnel: selected.assignedPersonnel || [],
           fromAcceptedBag: true,
         }),
       });
@@ -288,6 +309,38 @@ export const useBudgets = () => {
       return false;
     }
   }, [loadBudgets, showMessageWithTimeout]);
+
+  const moveBudgetToAcceptedBag = useCallback(async (budgetId) => {
+    const selected = budgets.find((item) => item.id === budgetId);
+    if (!selected) {
+      showMessageWithTimeout('No se encontró el presupuesto en la mesa de planificación.');
+      return false;
+    }
+
+    try {
+      await apiFetch('/accepted-budgets', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: selected.name || '',
+          budgetNumber: selected.budgetNumber || '',
+          acceptanceDate: selected.acceptanceDate || '',
+          status: selected.status || 'Accepted',
+          totalHours: Number(selected.totalHours || 0),
+          laborBreakdown: selected.laborBreakdown || [],
+          category: selected.category || '',
+          assignedPersonnel: selected.assignedPersonnel || [],
+        }),
+      });
+      await apiFetch(`/budgets/${budgetId}`, { method: 'DELETE' });
+      await Promise.all([loadBudgets(), loadAcceptedBudgets()]);
+      showMessageWithTimeout('Presupuesto devuelto a la bolsa de aceptados.');
+      return true;
+    } catch (error) {
+      console.error('Error returning budget to accepted bag:', error);
+      showMessageWithTimeout(`Error al devolver a bolsa: ${error.message}`);
+      return false;
+    }
+  }, [budgets, loadBudgets, loadAcceptedBudgets, showMessageWithTimeout]);
 
   const addLaborType = useCallback(() => {
     setBudgetForm((prev) => ({
@@ -371,14 +424,17 @@ export const useBudgets = () => {
     selectedCategory,
     updateBudgetForm,
     updateAcceptedBudgetForm,
+    resetAcceptedBudgetForm,
     resetBudgetForm,
     editBudget,
     useBudgetAsTemplate,
     saveBudget,
     saveAcceptedBudget,
+    editAcceptedBudget,
     deleteBudget,
     moveAcceptedToPlanning,
     deleteAcceptedBudget,
+    moveBudgetToAcceptedBag,
     addLaborType,
     updateLaborBreakdown,
     removeLaborType,

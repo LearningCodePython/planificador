@@ -77,6 +77,22 @@ async function initDb() {
       updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  // Lightweight migration for accepted_budgets to preserve planning data when returning items to the bag.
+  const acceptedCols = await all(`PRAGMA table_info(accepted_budgets)`);
+  const acceptedColNames = new Set((acceptedCols || []).map((c) => c.name));
+  if (!acceptedColNames.has('totalHours')) {
+    await run(`ALTER TABLE accepted_budgets ADD COLUMN totalHours REAL DEFAULT 0`);
+  }
+  if (!acceptedColNames.has('laborBreakdown')) {
+    await run(`ALTER TABLE accepted_budgets ADD COLUMN laborBreakdown TEXT DEFAULT '[]'`);
+  }
+  if (!acceptedColNames.has('category')) {
+    await run(`ALTER TABLE accepted_budgets ADD COLUMN category TEXT`);
+  }
+  if (!acceptedColNames.has('assignedPersonnel')) {
+    await run(`ALTER TABLE accepted_budgets ADD COLUMN assignedPersonnel TEXT DEFAULT '[]'`);
+  }
 }
 
 function parseBudgetRow(row) {
@@ -93,6 +109,9 @@ function parseAcceptedRow(row) {
   return {
     ...row,
     id: String(row.id),
+    totalHours: Number(row.totalHours || 0),
+    laborBreakdown: JSON.parse(row.laborBreakdown || '[]'),
+    assignedPersonnel: JSON.parse(row.assignedPersonnel || '[]'),
   };
 }
 
@@ -278,17 +297,61 @@ app.post('/api/accepted-budgets', async (req, res) => {
   try {
     const payload = req.body || {};
     const result = await run(
-      `INSERT INTO accepted_budgets (name, budgetNumber, acceptanceDate, status, updatedAt)
-       VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+      `INSERT INTO accepted_budgets (
+        name, budgetNumber, acceptanceDate, status,
+        totalHours, laborBreakdown, category, assignedPersonnel,
+        updatedAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
       [
         payload.name || '',
         payload.budgetNumber || '',
         payload.acceptanceDate || '',
         payload.status || 'Accepted',
+        Number(payload.totalHours || 0),
+        JSON.stringify(payload.laborBreakdown || []),
+        payload.category || '',
+        JSON.stringify(payload.assignedPersonnel || []),
       ]
     );
     const created = await all('SELECT * FROM accepted_budgets WHERE id = ?', [result.id]);
     res.status(201).json(parseAcceptedRow(created[0]));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/accepted-budgets/:id', async (req, res) => {
+  try {
+    const payload = req.body || {};
+    await run(
+      `UPDATE accepted_budgets SET
+        name = ?,
+        budgetNumber = ?,
+        acceptanceDate = ?,
+        status = ?,
+        totalHours = ?,
+        laborBreakdown = ?,
+        category = ?,
+        assignedPersonnel = ?,
+        updatedAt = CURRENT_TIMESTAMP
+      WHERE id = ?`,
+      [
+        payload.name || '',
+        payload.budgetNumber || '',
+        payload.acceptanceDate || '',
+        payload.status || 'Accepted',
+        Number(payload.totalHours || 0),
+        JSON.stringify(payload.laborBreakdown || []),
+        payload.category || '',
+        JSON.stringify(payload.assignedPersonnel || []),
+        Number(req.params.id),
+      ]
+    );
+    const updated = await all('SELECT * FROM accepted_budgets WHERE id = ?', [Number(req.params.id)]);
+    if (!updated[0]) {
+      return res.status(404).json({ error: 'Accepted budget not found' });
+    }
+    res.json(parseAcceptedRow(updated[0]));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

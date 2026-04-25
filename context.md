@@ -3,7 +3,7 @@
 ## Resumen
 **Planificador de Recursos y Presupuestos** es una aplicación web para gestionar presupuestos, personal y planificación de capacidad.
 
-A fecha **2026-04-24**, el proyecto funciona con arquitectura desacoplada:
+A fecha **2026-04-25**, el proyecto funciona con arquitectura desacoplada:
 - Frontend React
 - Backend Express
 - Base de datos SQLite
@@ -13,6 +13,9 @@ A fecha **2026-04-24**, el proyecto funciona con arquitectura desacoplada:
 - Registrar presupuestos en mesa de planificación.
 - Gestionar una bolsa de presupuestos aceptados con entrada mínima.
 - Mover presupuestos desde bolsa a planificación.
+- Editar presupuestos directamente dentro de la bolsa.
+- Buscar por número de presupuesto dentro de la bolsa.
+- Devolver presupuestos desde la mesa a la bolsa conservando horas/desglose/personal/categoría (se eliminan fechas).
 - Gestionar personal (disponibilidad y rol).
 - Analizar ocupación y carga de trabajo.
 - Exportar datos de presupuestos a CSV.
@@ -88,11 +91,19 @@ A fecha **2026-04-24**, el proyecto funciona con arquitectura desacoplada:
 - `budgetNumber`
 - `acceptanceDate`
 - `status`
+- `totalHours`
+- `laborBreakdown: [{ type, hours }]`
+- `category`
+- `assignedPersonnel: string[]`
 
 ## Estado y decisiones actuales
 - Se eliminó Firebase del runtime (datos y dependencias) para priorizar estabilidad local.
 - Persistencia unificada en SQLite para facilitar pruebas, backup y control de datos.
 - La autenticación está en modo local simplificado (frontend) y pendiente de endurecimiento en backend.
+
+## Notas de migración recientes
+- La tabla `accepted_budgets` se amplía automáticamente al arrancar el backend (ALTER TABLE) para incluir campos de planificación (horas/desglose/personal/categoría).
+- Al devolver un presupuesto desde la mesa de planificación a la bolsa se conservan esos campos y se eliminan las fechas (`startDate/endDate`) porque en la bolsa se gestiona sin calendario.
 
 ## Carencias técnicas activas
 - Falta autenticación backend real (sesiones/roles/permisos).

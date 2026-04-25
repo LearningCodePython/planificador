@@ -32,7 +32,10 @@ Estado actual: arquitectura desacoplada en **frontend + backend + SQLite** ejecu
   - Nombre
   - Número de presupuesto
   - Fecha de aceptación
+- Edición de presupuestos dentro de la bolsa.
+- Búsqueda por número de presupuesto dentro de la bolsa.
 - Movimiento de la bolsa a la mesa de planificación.
+- Devolución desde la mesa de planificación a la bolsa (conserva horas/desglose/personal/categoría y elimina fechas).
 
 ### Personal
 - Alta, edición y baja de personal.
@@ -59,6 +62,7 @@ Estado actual: arquitectura desacoplada en **frontend + backend + SQLite** ejecu
 
 ### `accepted_budgets`
 - `id`, `name`, `budgetNumber`, `acceptanceDate`, `status`
+- `totalHours`, `laborBreakdown`, `category`, `assignedPersonnel`
 
 ## Puesta en marcha con Docker
 
