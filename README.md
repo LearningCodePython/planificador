@@ -22,6 +22,7 @@ Estado actual: arquitectura desacoplada en **frontend + backend + SQLite** ejecu
 
 ### Presupuestos
 - Crear, editar y eliminar presupuestos.
+- Campo `#Ticket` asociado (trazabilidad externa).
 - Desglose por tipo de mano de obra.
 - Estados, categoría y fechas de planificación.
 - Asignación de personal.
@@ -31,7 +32,9 @@ Estado actual: arquitectura desacoplada en **frontend + backend + SQLite** ejecu
 - Alta rápida con:
   - Nombre
   - Número de presupuesto
+  - `#Ticket` (opcional)
   - Fecha de aceptación
+- Subida de PDF del presupuesto (opcional).
 - Edición de presupuestos dentro de la bolsa.
 - Búsqueda por número de presupuesto dentro de la bolsa.
 - Movimiento de la bolsa a la mesa de planificación.
@@ -52,7 +55,8 @@ Estado actual: arquitectura desacoplada en **frontend + backend + SQLite** ejecu
 ## Modelo de datos (resumen)
 
 ### `budgets`
-- `id`, `name`, `budgetNumber`, `acceptanceDate`
+- `id`, `name`, `budgetNumber`, `acceptanceDate`, `ticketRef`
+- `pdfFilename`, `pdfOriginalName` (metadatos del adjunto)
 - `totalHours`, `laborBreakdown`
 - `startDate`, `endDate`, `status`, `category`
 - `assignedPersonnel`, `fromAcceptedBag`
@@ -61,7 +65,8 @@ Estado actual: arquitectura desacoplada en **frontend + backend + SQLite** ejecu
 - `id`, `name`, `laborType`, `hoursPerDay`, `daysPerWeek`
 
 ### `accepted_budgets`
-- `id`, `name`, `budgetNumber`, `acceptanceDate`, `status`
+- `id`, `name`, `budgetNumber`, `acceptanceDate`, `status`, `ticketRef`
+- `pdfFilename`, `pdfOriginalName` (metadatos del adjunto)
 - `totalHours`, `laborBreakdown`, `category`, `assignedPersonnel`
 
 ## Puesta en marcha con Docker
@@ -93,6 +98,18 @@ docker compose logs -f planificador-api
 ### Producción (con Traefik)
 
 El `docker-compose.yml` está pensado para ejecutarse detrás de Traefik en una red externa `traefik_default` y no publica puertos directamente.
+
+## Adjuntos (PDF)
+
+Los PDFs se almacenan en el backend en `/app/upload/pdfs` (normalmente mapeado a `/var/lib/contel-planificador/upload` por Compose).
+
+Endpoints:
+- `POST /api/accepted-budgets/:id/pdf` (multipart `file`)
+- `GET /api/accepted-budgets/:id/pdf`
+- `DELETE /api/accepted-budgets/:id/pdf`
+- `POST /api/budgets/:id/pdf` (multipart `file`)
+- `GET /api/budgets/:id/pdf`
+- `DELETE /api/budgets/:id/pdf`
 
 ## Estructura relevante
 

@@ -22,18 +22,45 @@ const apiFetch = async (path, options = {}) => {
   return response.json();
 };
 
+const apiUploadPdf = async (path, file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(`/api${path}`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    let message = `HTTP ${response.status}`;
+    try {
+      const data = await response.json();
+      message = data.error || message;
+    } catch (_e) {
+      // noop
+    }
+    throw new Error(message);
+  }
+
+  return response.json();
+};
+
 export const useBudgets = () => {
   const { showMessageWithTimeout } = useAppContext();
 
   const [budgets, setBudgets] = useState([]);
   const [acceptedBudgets, setAcceptedBudgets] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('Todas');
+  const [acceptedBudgetPdfFile, setAcceptedBudgetPdfFile] = useState(null);
 
   const [acceptedBudgetForm, setAcceptedBudgetForm] = useState({
     id: null,
     name: '',
     budgetNumber: '',
     acceptanceDate: '',
+    ticketRef: '',
+    pdfFilename: '',
+    pdfOriginalName: '',
   });
 
   const [budgetForm, setBudgetForm] = useState({
@@ -41,6 +68,7 @@ export const useBudgets = () => {
     name: '',
     budgetNumber: '',
     acceptanceDate: '',
+    ticketRef: '',
     totalHours: '',
     laborBreakdown: [{ type: '', hours: '' }],
     startDate: '',
@@ -89,7 +117,11 @@ export const useBudgets = () => {
       name: '',
       budgetNumber: '',
       acceptanceDate: '',
+      ticketRef: '',
+      pdfFilename: '',
+      pdfOriginalName: '',
     });
+    setAcceptedBudgetPdfFile(null);
   }, []);
 
   const resetBudgetForm = useCallback(() => {
@@ -98,6 +130,7 @@ export const useBudgets = () => {
       name: '',
       budgetNumber: '',
       acceptanceDate: '',
+      ticketRef: '',
       totalHours: '',
       laborBreakdown: [{ type: '', hours: '' }],
       startDate: '',
@@ -114,6 +147,7 @@ export const useBudgets = () => {
       name: budget.name,
       budgetNumber: budget.budgetNumber || '',
       acceptanceDate: budget.acceptanceDate || '',
+      ticketRef: budget.ticketRef || '',
       totalHours: budget.totalHours,
       laborBreakdown: budget.laborBreakdown || [{ type: '', hours: '' }],
       startDate: budget.startDate || '',
@@ -143,6 +177,7 @@ export const useBudgets = () => {
       name: `${budget.name} (copia)`,
       budgetNumber: budget.budgetNumber || '',
       acceptanceDate: budget.acceptanceDate || '',
+      ticketRef: budget.ticketRef || '',
       totalHours: budget.totalHours,
       laborBreakdown: budget.laborBreakdown || [{ type: '', hours: '' }],
       startDate: newStart,
@@ -172,6 +207,7 @@ export const useBudgets = () => {
       name: budgetForm.name,
       budgetNumber: budgetForm.budgetNumber || '',
       acceptanceDate: budgetForm.acceptanceDate || '',
+      ticketRef: budgetForm.ticketRef || '',
       totalHours: Number(budgetForm.totalHours),
       laborBreakdown: budgetForm.laborBreakdown.map((item) => ({
         type: item.type,
@@ -214,21 +250,28 @@ export const useBudgets = () => {
         name: acceptedBudgetForm.name,
         budgetNumber: acceptedBudgetForm.budgetNumber,
         acceptanceDate: acceptedBudgetForm.acceptanceDate,
+        ticketRef: acceptedBudgetForm.ticketRef || '',
         status: 'Accepted',
       };
 
+      let saved;
       if (acceptedBudgetForm.id) {
-        await apiFetch(`/accepted-budgets/${acceptedBudgetForm.id}`, {
+        saved = await apiFetch(`/accepted-budgets/${acceptedBudgetForm.id}`, {
           method: 'PUT',
           body: JSON.stringify(payload),
         });
         showMessageWithTimeout('Presupuesto de la bolsa actualizado.');
       } else {
-        await apiFetch('/accepted-budgets', {
+        saved = await apiFetch('/accepted-budgets', {
           method: 'POST',
           body: JSON.stringify(payload),
         });
         showMessageWithTimeout('Presupuesto añadido a la bolsa de aceptados.');
+      }
+
+      if (acceptedBudgetPdfFile && saved?.id) {
+        await apiUploadPdf(`/accepted-budgets/${saved.id}/pdf`, acceptedBudgetPdfFile);
+        showMessageWithTimeout('PDF subido correctamente.');
       }
       resetAcceptedBudgetForm();
       loadAcceptedBudgets();
@@ -238,14 +281,24 @@ export const useBudgets = () => {
       showMessageWithTimeout(`Error al guardar en bolsa de aceptados: ${error.message}`);
       return false;
     }
-  }, [acceptedBudgetForm, resetAcceptedBudgetForm, loadAcceptedBudgets, showMessageWithTimeout]);
+  }, [
+    acceptedBudgetForm,
+    acceptedBudgetPdfFile,
+    resetAcceptedBudgetForm,
+    loadAcceptedBudgets,
+    showMessageWithTimeout,
+  ]);
 
   const editAcceptedBudget = useCallback((accepted) => {
+    setAcceptedBudgetPdfFile(null);
     setAcceptedBudgetForm({
       id: accepted.id,
       name: accepted.name || '',
       budgetNumber: accepted.budgetNumber || '',
       acceptanceDate: accepted.acceptanceDate || '',
+      ticketRef: accepted.ticketRef || '',
+      pdfFilename: accepted.pdfFilename || '',
+      pdfOriginalName: accepted.pdfOriginalName || '',
     });
   }, []);
 
@@ -263,6 +316,9 @@ export const useBudgets = () => {
           name: selected.name || '',
           budgetNumber: selected.budgetNumber || '',
           acceptanceDate: selected.acceptanceDate || '',
+          ticketRef: selected.ticketRef || '',
+          pdfFilename: selected.pdfFilename || null,
+          pdfOriginalName: selected.pdfOriginalName || null,
           totalHours: Number(selected.totalHours || 0),
           laborBreakdown: selected.laborBreakdown || [],
           startDate: '',
@@ -324,6 +380,9 @@ export const useBudgets = () => {
           name: selected.name || '',
           budgetNumber: selected.budgetNumber || '',
           acceptanceDate: selected.acceptanceDate || '',
+          ticketRef: selected.ticketRef || '',
+          pdfFilename: selected.pdfFilename || null,
+          pdfOriginalName: selected.pdfOriginalName || null,
           status: selected.status || 'Accepted',
           totalHours: Number(selected.totalHours || 0),
           laborBreakdown: selected.laborBreakdown || [],
@@ -385,7 +444,7 @@ export const useBudgets = () => {
       return;
     }
 
-    const header = ['Nombre', 'Categoría', 'Estado', 'Inicio', 'Fin', 'Horas Totales', 'Personal Asignado'];
+    const header = ['Nombre', '#Ticket', 'Categoría', 'Estado', 'Inicio', 'Fin', 'Horas Totales', 'Personal Asignado'];
 
     const rows = budgets.map((budget) => {
       const assigned = personnel
@@ -395,6 +454,7 @@ export const useBudgets = () => {
 
       return [
         budget.name,
+        budget.ticketRef || '',
         budget.category || '',
         budget.status,
         budget.startDate,
@@ -421,9 +481,11 @@ export const useBudgets = () => {
     acceptedBudgets,
     budgetForm,
     acceptedBudgetForm,
+    acceptedBudgetPdfFile,
     selectedCategory,
     updateBudgetForm,
     updateAcceptedBudgetForm,
+    setAcceptedBudgetPdfFile,
     resetAcceptedBudgetForm,
     resetBudgetForm,
     editBudget,

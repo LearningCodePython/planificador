@@ -27,9 +27,11 @@ function BudgetDashboard() {
     acceptedBudgets,
     budgetForm,
     acceptedBudgetForm,
+    acceptedBudgetPdfFile,
     selectedCategory,
     updateBudgetForm,
     updateAcceptedBudgetForm,
+    setAcceptedBudgetPdfFile,
     resetAcceptedBudgetForm,
     editBudget,
     useBudgetAsTemplate,
@@ -170,6 +172,17 @@ function BudgetDashboard() {
               />
             </div>
             <div>
+              <label htmlFor="acceptedBudgetTicket" className="block text-sm font-medium text-gray-700">#Ticket</label>
+              <input
+                type="text"
+                id="acceptedBudgetTicket"
+                className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                value={acceptedBudgetForm.ticketRef || ''}
+                onChange={(e) => updateAcceptedBudgetForm('ticketRef', e.target.value)}
+                placeholder="Ej. TCK-12345"
+              />
+            </div>
+            <div>
               <label htmlFor="acceptedBudgetDate" className="block text-sm font-medium text-gray-700">Fecha de aceptacion</label>
               <input
                 type="date"
@@ -178,6 +191,28 @@ function BudgetDashboard() {
                 value={acceptedBudgetForm.acceptanceDate}
                 onChange={(e) => updateAcceptedBudgetForm('acceptanceDate', e.target.value)}
               />
+            </div>
+            <div>
+              <label htmlFor="acceptedBudgetPdf" className="block text-sm font-medium text-gray-700">PDF del presupuesto (opcional)</label>
+              <input
+                type="file"
+                id="acceptedBudgetPdf"
+                accept="application/pdf,.pdf"
+                className="mt-1 block w-full text-sm"
+                onChange={(e) => setAcceptedBudgetPdfFile(e.target.files?.[0] || null)}
+              />
+              {acceptedBudgetPdfFile ? (
+                <div className="mt-1 text-xs text-gray-600">Seleccionado: {acceptedBudgetPdfFile.name}</div>
+              ) : acceptedBudgetForm.id && acceptedBudgetForm.pdfFilename ? (
+                <a
+                  className="mt-1 inline-block text-xs text-blue-700 underline"
+                  href={`/api/accepted-budgets/${acceptedBudgetForm.id}/pdf`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Ver PDF actual: {acceptedBudgetForm.pdfOriginalName || 'presupuesto.pdf'}
+                </a>
+              ) : null}
             </div>
             <button
               onClick={saveAcceptedBudget}
@@ -218,6 +253,21 @@ function BudgetDashboard() {
                   <p className="text-base font-semibold text-emerald-800">{accepted.name || 'Sin nombre'}</p>
                   <p className="text-sm text-gray-700">Numero: {accepted.budgetNumber || '-'}</p>
                   <p className="text-sm text-gray-700">Aceptacion: {accepted.acceptanceDate || '-'}</p>
+                  {accepted.ticketRef ? (
+                    <p className="text-sm text-gray-700">#Ticket: {accepted.ticketRef}</p>
+                  ) : null}
+                  {accepted.pdfFilename ? (
+                    <a
+                      className="text-sm text-blue-700 underline"
+                      href={`/api/accepted-budgets/${accepted.id}/pdf`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      PDF: {accepted.pdfOriginalName || 'presupuesto.pdf'}
+                    </a>
+                  ) : (
+                    <p className="text-sm text-gray-700">PDF: -</p>
+                  )}
                   <div className="mt-3 flex flex-col sm:flex-row gap-2">
                     <button
                       onClick={() => editAcceptedBudget(accepted)}
@@ -259,6 +309,17 @@ function BudgetDashboard() {
                 value={budgetForm.name}
                 onChange={(e) => updateBudgetForm('name', e.target.value)}
                 placeholder="Ej. Proyecto Alpha"
+              />
+            </div>
+            <div>
+              <label htmlFor="budgetTicketRef" className="block text-sm font-medium text-gray-700">#Ticket</label>
+              <input
+                type="text"
+                id="budgetTicketRef"
+                className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                value={budgetForm.ticketRef || ''}
+                onChange={(e) => updateBudgetForm('ticketRef', e.target.value)}
+                placeholder="Ej. TCK-12345"
               />
             </div>
             <div>
@@ -584,6 +645,21 @@ function BudgetDashboard() {
                   <p className="text-lg font-semibold text-blue-800">{budget.name} ({budget.status})</p>
                   <p className="text-sm text-gray-600">Numero: {budget.budgetNumber || '-'}</p>
                   <p className="text-sm text-gray-600">Fecha de aceptacion: {budget.acceptanceDate || '-'}</p>
+                  {budget.ticketRef ? (
+                    <p className="text-sm text-gray-600">#Ticket: {budget.ticketRef}</p>
+                  ) : null}
+                  {budget.pdfFilename ? (
+                    <a
+                      className="text-sm text-blue-700 underline"
+                      href={`/api/budgets/${budget.id}/pdf`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      PDF: {budget.pdfOriginalName || 'presupuesto.pdf'}
+                    </a>
+                  ) : (
+                    <p className="text-sm text-gray-600">PDF: -</p>
+                  )}
                   <p className="text-sm text-gray-600">Horas Totales: {budget.totalHours}</p>
                   <p className="text-sm text-gray-600">Inicio: {budget.startDate} | Fin: {budget.endDate}</p>
                   {assignedPeople.length > 0 && (

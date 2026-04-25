@@ -110,5 +110,26 @@ Mejoras de usabilidad y flujo entre bolsa y mesa de planificación.
 - Backend: ampliación automática de `accepted_budgets` para persistir campos de planificación (migración con `ALTER TABLE` al arrancar).
 
 ### Pendientes
+- La posibilidad de subir el PDF del presupuesto cuando se crea en la bolsa de presupuestos.
+- Añadir el campo de `#Ticket` asociado (relacionado con la plataforma externa de gestión de tickets).
 - Implementar autenticación backend real (sesión/roles/permisos).
 - Añadir suite de pruebas automáticas (API y frontend).
+- Ver la posibilidad de API para conectar a automatización N8N.
+
+## v0.6 - 2026-04-25
+
+### Tipo de release
+Adjuntos y trazabilidad externa: PDF asociado + campo `#Ticket`.
+
+### Cambios aplicados
+- Bolsa de aceptados: nuevo campo `#Ticket` (persistente).
+- Mesa de planificación: nuevo campo `#Ticket` (persistente).
+- Bolsa de aceptados: subida de PDF al crear/editar (opcional).
+- Backend: endpoints para subir/descargar/eliminar PDF:
+  - `POST /api/accepted-budgets/:id/pdf`, `GET /api/accepted-budgets/:id/pdf`, `DELETE /api/accepted-budgets/:id/pdf`
+  - `POST /api/budgets/:id/pdf`, `GET /api/budgets/:id/pdf`, `DELETE /api/budgets/:id/pdf`
+- Persistencia: metadatos `pdfFilename/pdfOriginalName` en SQLite y ficheros en volumen `/app/upload/pdfs`.
+- Movimientos bolsa ↔ mesa: se conserva `#Ticket` y la referencia al PDF (no se borra el fichero si sigue referenciado).
+
+### Pendientes
+- Definir validación/tamaño máximo y política de retención de adjuntos.

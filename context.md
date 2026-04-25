@@ -12,6 +12,8 @@ A fecha **2026-04-25**, el proyecto funciona con arquitectura desacoplada:
 ## Objetivo funcional vigente
 - Registrar presupuestos en mesa de planificación.
 - Gestionar una bolsa de presupuestos aceptados con entrada mínima.
+- Asociar `#Ticket` a presupuestos (trazabilidad con plataforma externa).
+- Subir y consultar PDF asociado a presupuestos (opcional).
 - Mover presupuestos desde bolsa a planificación.
 - Editar presupuestos directamente dentro de la bolsa.
 - Buscar por número de presupuesto dentro de la bolsa.
@@ -37,6 +39,9 @@ A fecha **2026-04-25**, el proyecto funciona con arquitectura desacoplada:
   - `/api/budgets`
   - `/api/personnel`
   - `/api/accepted-budgets`
+  - Adjuntos PDF:
+    - `POST/GET/DELETE /api/accepted-budgets/:id/pdf`
+    - `POST/GET/DELETE /api/budgets/:id/pdf`
 
 ### Contenedores
 - `planificador-web`
@@ -69,6 +74,9 @@ A fecha **2026-04-25**, el proyecto funciona con arquitectura desacoplada:
 - `name`
 - `budgetNumber`
 - `acceptanceDate`
+- `ticketRef`
+- `pdfFilename`
+- `pdfOriginalName`
 - `totalHours`
 - `laborBreakdown: [{ type, hours }]`
 - `startDate`
@@ -90,6 +98,9 @@ A fecha **2026-04-25**, el proyecto funciona con arquitectura desacoplada:
 - `name`
 - `budgetNumber`
 - `acceptanceDate`
+- `ticketRef`
+- `pdfFilename`
+- `pdfOriginalName`
 - `status`
 - `totalHours`
 - `laborBreakdown: [{ type, hours }]`
@@ -100,6 +111,7 @@ A fecha **2026-04-25**, el proyecto funciona con arquitectura desacoplada:
 - Se eliminó Firebase del runtime (datos y dependencias) para priorizar estabilidad local.
 - Persistencia unificada en SQLite para facilitar pruebas, backup y control de datos.
 - La autenticación está en modo local simplificado (frontend) y pendiente de endurecimiento en backend.
+- Adjuntos PDF: almacenados en volumen del backend (ruta contenedor: `/app/upload/pdfs`).
 
 ## Notas de migración recientes
 - La tabla `accepted_budgets` se amplía automáticamente al arrancar el backend (ALTER TABLE) para incluir campos de planificación (horas/desglose/personal/categoría).
