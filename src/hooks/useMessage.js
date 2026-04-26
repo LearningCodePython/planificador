@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 /**
  * Hook personalizado para manejar mensajes de notificación
@@ -11,20 +11,32 @@ import { useState } from 'react';
 export const useMessage = () => {
   const [message, setMessage] = useState('');
   const [showMessage, setShowMessage] = useState(false);
+  const timeoutRef = useRef(null);
 
-  const showMessageWithTimeout = (msg, duration = 3000) => {
-    setMessage(msg);
-    setShowMessage(true);
-    setTimeout(() => {
-      setShowMessage(false);
-      setMessage('');
-    }, duration);
-  };
-
-  const hideMessage = () => {
+  const hideMessage = useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
     setShowMessage(false);
     setMessage('');
-  };
+  }, []);
+
+  useEffect(() => () => hideMessage(), [hideMessage]);
+
+  const showMessageWithTimeout = useCallback(
+    (msg, duration = 3000) => {
+      hideMessage();
+      setMessage(msg);
+      setShowMessage(true);
+      timeoutRef.current = setTimeout(() => {
+        setShowMessage(false);
+        setMessage('');
+        timeoutRef.current = null;
+      }, duration);
+    },
+    [hideMessage]
+  );
 
   return { 
     message, 

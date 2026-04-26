@@ -120,7 +120,10 @@ Endpoints:
 - `POST /api/auth/login`
 - `POST /api/auth/signup`
 - `POST /api/auth/logout`
-- Admin: `GET/POST /api/auth/users`
+- Admin: `GET /api/auth/users` (listar usuarios + roles)
+- Admin: `POST /api/auth/users` (crear usuario + roles)
+- Admin: `PUT /api/auth/users/:id` (activar/desactivar, roles, reset password)
+- Admin: `GET /api/auth/roles` (lista de roles disponibles)
 
 Roles seed por defecto:
 - `admin`: acceso total.
@@ -130,6 +133,9 @@ Roles seed por defecto:
 Bootstrap de admin (primer arranque, BD vacía):
 - Si defines `BOOTSTRAP_ADMIN_EMAIL` y `BOOTSTRAP_ADMIN_PASSWORD`, se crea ese admin.
 - Si no, se crea `admin@planificador.local` con contraseña aleatoria (se imprime en logs del backend).
+
+Gestión desde UI:
+- Si el usuario autenticado tiene rol `admin`, aparece la pestaña **Usuarios** para crear usuarios y asignar roles (y activar/desactivar/resetear contraseña).
 
 ## Estructura relevante
 

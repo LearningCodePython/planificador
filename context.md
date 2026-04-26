@@ -29,6 +29,7 @@ A fecha **2026-04-26**, el proyecto funciona con arquitectura desacoplada:
 - Tailwind CSS
 - Recharts
 - Autenticación: sesión backend (cookie HttpOnly) consumida desde `useBackendAuth`.
+- Gestión admin (UI): pestaña **Usuarios** visible solo para rol `admin` (alta/roles/activación/reset password).
 - Hooks de dominio:
   - `useBudgets` (vía API REST)
   - `usePersonnel` (vía API REST)
@@ -39,7 +40,7 @@ A fecha **2026-04-26**, el proyecto funciona con arquitectura desacoplada:
 - Autenticación/autorización:
   - Sesión backend (cookie HttpOnly `planificador_session`)
   - Roles/permisos (`admin/editor/viewer`)
-  - Endpoints `/api/auth/*` (`me/login/signup/logout` + admin `users`)
+  - Endpoints `/api/auth/*` (`me/login/signup/logout` + admin `users/roles`)
 - API REST local:
   - `/api/budgets`
   - `/api/personnel`
@@ -47,6 +48,12 @@ A fecha **2026-04-26**, el proyecto funciona con arquitectura desacoplada:
   - Adjuntos PDF:
     - `POST/GET/DELETE /api/accepted-budgets/:id/pdf`
     - `POST/GET/DELETE /api/budgets/:id/pdf`
+
+Endpoints admin relevantes (auth):
+- `GET /api/auth/roles`
+- `GET /api/auth/users`
+- `POST /api/auth/users`
+- `PUT /api/auth/users/:id`
 
 ### Contenedores
 - `planificador-web`

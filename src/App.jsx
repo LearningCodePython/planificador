@@ -6,11 +6,13 @@ import { AppProvider } from './contexts/AppContext';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import AuthWrapper from './components/AuthWrapper';
 import { useAppContext } from './contexts/AppContext';
+import UserAdmin from './components/UserAdmin';
 
 const AppContent = () => {
   const { logOut, user } = useAppContext();
   const { theme, toggleTheme } = useTheme();
   const [activeView, setActiveView] = useState('budgets'); // 'budgets' o 'personnel'
+  const isAdmin = Boolean(user?.roles?.includes('admin'));
 
   const getButtonClass = (viewName) => 
     `px-4 py-2 text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ` +
@@ -47,11 +49,17 @@ const AppContent = () => {
           <button onClick={() => setActiveView('personnel')} className={getButtonClass('personnel')}>
             Gestión de Personal
           </button>
+          {isAdmin && (
+            <button onClick={() => setActiveView('users')} className={getButtonClass('users')}>
+              Usuarios
+            </button>
+          )}
         </div>
 
         <div className="grid grid-cols-1 gap-6">
           {activeView === 'budgets' && <BudgetDashboard />}
           {activeView === 'personnel' && <PersonnelManager />}
+          {activeView === 'users' && <UserAdmin />}
         </div>
 
         <MessageModal />

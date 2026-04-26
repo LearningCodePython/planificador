@@ -79,6 +79,29 @@ async function getUserAuthContext({ get, all }, userId) {
   };
 }
 
+async function getUserAdminRow({ get, all }, userId) {
+  const user = await get(`SELECT id, email, isActive, createdAt, updatedAt FROM users WHERE id = ?`, [Number(userId)]);
+  if (!user) return null;
+
+  const roles = await all(
+    `SELECT r.name as name
+     FROM roles r
+     INNER JOIN user_roles ur ON ur.roleId = r.id
+     WHERE ur.userId = ?
+     ORDER BY r.name ASC`,
+    [Number(userId)]
+  );
+
+  return {
+    id: String(user.id),
+    email: user.email,
+    isActive: Boolean(user.isActive),
+    roles: roles.map((r) => r.name),
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  };
+}
+
 function createAuth({ run, get, all }, options = {}) {
   const cookieName = options.cookieName || process.env.AUTH_COOKIE_NAME || 'planificador_session';
   const sessionTtlSeconds = Number(options.sessionTtlSeconds || process.env.AUTH_SESSION_TTL_SECONDS || 60 * 60 * 24 * 7);
@@ -195,6 +218,15 @@ function createAuth({ run, get, all }, options = {}) {
       res.json({ user: req.user || null });
     });
 
+    app.get('/api/auth/roles', requirePermission('users:read'), async (_req, res) => {
+      try {
+        const roles = await all(`SELECT name FROM roles ORDER BY name ASC`);
+        return res.json({ roles: roles.map((r) => r.name) });
+      } catch (error) {
+        return res.status(500).json({ error: error.message });
+      }
+    });
+
     app.post('/api/auth/signup', async (req, res) => {
       try {
         const email = normalizeEmail(req.body?.email);
@@ -255,7 +287,27 @@ function createAuth({ run, get, all }, options = {}) {
     app.get('/api/auth/users', requirePermission('users:read'), async (_req, res) => {
       try {
         const users = await all(`SELECT id, email, isActive, createdAt, updatedAt FROM users ORDER BY id ASC`);
-        return res.json(users.map((u) => ({ ...u, id: String(u.id), isActive: Boolean(u.isActive) })));
+        const userRoles = await all(
+          `SELECT ur.userId as userId, r.name as name
+           FROM user_roles ur
+           INNER JOIN roles r ON r.id = ur.roleId
+           ORDER BY ur.userId ASC, r.name ASC`
+        );
+        const rolesByUserId = new Map();
+        for (const row of userRoles) {
+          const key = String(row.userId);
+          const list = rolesByUserId.get(key) || [];
+          list.push(row.name);
+          rolesByUserId.set(key, list);
+        }
+        return res.json(
+          users.map((u) => ({
+            ...u,
+            id: String(u.id),
+            isActive: Boolean(u.isActive),
+            roles: rolesByUserId.get(String(u.id)) || [],
+          }))
+        );
       } catch (error) {
         return res.status(500).json({ error: error.message });
       }
@@ -285,8 +337,65 @@ function createAuth({ run, get, all }, options = {}) {
           await run(`INSERT OR IGNORE INTO user_roles (userId, roleId) VALUES (?, ?)`, [created.id, role.id]);
         }
 
-        const user = await getUserAuthContext({ get, all }, created.id);
+        const user = await getUserAdminRow({ get, all }, created.id);
         return res.status(201).json({ user });
+      } catch (error) {
+        return res.status(500).json({ error: error.message });
+      }
+    });
+
+    app.put('/api/auth/users/:id', requirePermission('users:write'), async (req, res) => {
+      try {
+        const targetId = Number(req.params.id);
+        if (!targetId) return res.status(400).json({ error: 'Id inválido' });
+
+        const userRow = await get(`SELECT id FROM users WHERE id = ?`, [targetId]);
+        if (!userRow) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+        const payload = req.body || {};
+        const nextIsActive = payload.isActive;
+        const nextRoles = Array.isArray(payload.roles) ? payload.roles.map((r) => String(r)) : null;
+        const nextPassword = payload.password == null ? null : String(payload.password);
+
+        if (nextPassword != null && nextPassword !== '' && nextPassword.length < 8) {
+          return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres' });
+        }
+
+        if (req.user && String(req.user.id) === String(targetId)) {
+          if (nextIsActive === false) return res.status(400).json({ error: 'No puedes desactivar tu propio usuario' });
+          if (nextRoles && !nextRoles.includes('admin')) {
+            return res.status(400).json({ error: 'No puedes quitarte el rol admin a ti mismo' });
+          }
+        }
+
+        if (nextIsActive != null) {
+          await run(`UPDATE users SET isActive = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?`, [nextIsActive ? 1 : 0, targetId]);
+        }
+
+        if (nextPassword != null && nextPassword !== '') {
+          await run(`UPDATE users SET passwordHash = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?`, [hashPassword(nextPassword), targetId]);
+        }
+
+        if (nextRoles) {
+          for (const roleName of nextRoles) {
+            // eslint-disable-next-line no-await-in-loop
+            const role = await get(`SELECT id FROM roles WHERE name = ?`, [String(roleName)]);
+            if (!role) return res.status(400).json({ error: `Rol inválido: ${roleName}` });
+          }
+
+          await run(`DELETE FROM user_roles WHERE userId = ?`, [targetId]);
+          for (const roleName of nextRoles.length ? nextRoles : ['viewer']) {
+            // eslint-disable-next-line no-await-in-loop
+            const role = await get(`SELECT id FROM roles WHERE name = ?`, [String(roleName)]);
+            if (!role) continue;
+            // eslint-disable-next-line no-await-in-loop
+            await run(`INSERT OR IGNORE INTO user_roles (userId, roleId) VALUES (?, ?)`, [targetId, role.id]);
+          }
+          await run(`UPDATE users SET updatedAt = CURRENT_TIMESTAMP WHERE id = ?`, [targetId]);
+        }
+
+        const user = await getUserAdminRow({ get, all }, targetId);
+        return res.json({ user });
       } catch (error) {
         return res.status(500).json({ error: error.message });
       }
@@ -311,4 +420,5 @@ module.exports._test = {
   parseCookies,
   buildSetCookie,
   getUserAuthContext,
+  getUserAdminRow,
 };

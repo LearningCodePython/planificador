@@ -134,3 +134,20 @@ Adjuntos y trazabilidad externa: PDF asociado + campo `#Ticket`.
 - Definir validación/tamaño máximo y política de retención de adjuntos.
 - Añadir suite de pruebas automáticas (API y frontend).
 - Ver la posibilidad de API para conectar a automatización N8N.
+
+## v0.7 - 2026-04-26
+
+### Tipo de release
+Mejora de administración: gestión de usuarios/roles desde la UI.
+
+### Cambios aplicados
+- Frontend: nueva pestaña **Usuarios** visible solo para rol `admin`.
+- UI: listado de usuarios con sus roles, activación/desactivación y reseteo de contraseña.
+- Backend (auth):
+  - `GET /api/auth/roles`: devuelve roles disponibles.
+  - `GET /api/auth/users`: ahora incluye `roles` por usuario.
+  - `PUT /api/auth/users/:id`: actualizar `isActive`, roles y/o contraseña.
+- Corrección de UX: se evita recarga continua que hacía “parpadear” botones en la pantalla de usuarios.
+
+### Notas
+- Configuración local: se pueden eliminar variables antiguas de Firebase del `.env` (no versionado; ya no se usan en runtime).

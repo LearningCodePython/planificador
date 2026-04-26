@@ -2,6 +2,7 @@
 export { useMessage } from './useMessage';
 export { useLocalAuth } from './useLocalAuth';
 export { useBackendAuth } from './useBackendAuth';
+export { useAdminUsers } from './useAdminUsers';
 export { useBudgets } from './useBudgets';
 export { usePersonnel } from './usePersonnel';
 
