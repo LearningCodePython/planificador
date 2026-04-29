@@ -27,6 +27,7 @@ Estado actual: arquitectura desacoplada en **frontend + backend + SQLite** ejecu
 - Estados, categoría y fechas de planificación.
 - Asignación de personal.
 - Duplicado mediante plantilla.
+- Finalización: mover presupuestos completados a **Ejecutados** conservando horas/personal/fechas.
 
 ### Bolsa de Presupuestos Aceptados
 - Alta rápida con:
@@ -39,6 +40,10 @@ Estado actual: arquitectura desacoplada en **frontend + backend + SQLite** ejecu
 - Búsqueda por número de presupuesto dentro de la bolsa.
 - Movimiento de la bolsa a la mesa de planificación.
 - Devolución desde la mesa de planificación a la bolsa (conserva horas/desglose/personal/categoría y elimina fechas).
+
+### Ejecutados
+- Listado de presupuestos terminados (migrados desde la mesa de planificación).
+- Conserva datos de planificación: horas, personal y fechas.
 
 ### Personal
 - Alta, edición y baja de personal.
@@ -60,6 +65,14 @@ Estado actual: arquitectura desacoplada en **frontend + backend + SQLite** ejecu
 - `totalHours`, `laborBreakdown`
 - `startDate`, `endDate`, `status`, `category`
 - `assignedPersonnel`, `fromAcceptedBag`
+
+### `executed_budgets`
+- `id`, `sourceBudgetId`, `name`, `budgetNumber`, `acceptanceDate`, `ticketRef`
+- `pdfFilename`, `pdfOriginalName` (metadatos del adjunto)
+- `totalHours`, `laborBreakdown`
+- `startDate`, `endDate`, `status`, `category`
+- `assignedPersonnel`, `fromAcceptedBag`
+- `executedAt`
 
 ### `personnel`
 - `id`, `name`, `laborType`, `hoursPerDay`, `daysPerWeek`
@@ -110,6 +123,7 @@ Endpoints:
 - `POST /api/budgets/:id/pdf` (multipart `file`)
 - `GET /api/budgets/:id/pdf`
 - `DELETE /api/budgets/:id/pdf`
+- `GET /api/executed-budgets/:id/pdf`
 
 ## Autenticación (backend)
 

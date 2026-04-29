@@ -42,6 +42,7 @@ function BudgetDashboard() {
     moveAcceptedToPlanning,
     deleteAcceptedBudget,
     moveBudgetToAcceptedBag,
+    moveBudgetToExecuted,
     addLaborType,
     updateLaborBreakdown,
     removeLaborType,
@@ -707,6 +708,20 @@ function BudgetDashboard() {
                       className="flex-1 bg-blue-600 text-white py-1 px-3 rounded-md hover:bg-blue-700 transition duration-300 ease-in-out text-sm shadow-sm"
                     >
                       USAR COMO BASE
+                    </button>
+                    <button
+                      onClick={() => {
+                        const ok = window.confirm('Moverá el presupuesto a "Ejecutados" conservando horas, personal y fechas, y lo eliminará de la mesa de planificación. ¿Continuar?');
+                        if (ok) moveBudgetToExecuted(budget.id);
+                      }}
+                      disabled={budget.status !== 'Completed'}
+                      className={`flex-1 py-1 px-3 rounded-md transition duration-300 ease-in-out text-sm shadow-sm ${
+                        budget.status === 'Completed'
+                          ? 'bg-gray-800 text-white hover:bg-gray-900'
+                          : 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                      }`}
+                    >
+                      Pasar a ejecutados
                     </button>
                   </div>
                 </div>

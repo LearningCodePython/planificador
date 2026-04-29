@@ -74,6 +74,30 @@ async function initDb({ run, all }) {
   if (!budgetColNames.has('pdfOriginalName')) await run(`ALTER TABLE budgets ADD COLUMN pdfOriginalName TEXT`);
 
   await run(`
+    CREATE TABLE IF NOT EXISTS executed_budgets (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      sourceBudgetId INTEGER,
+      name TEXT NOT NULL,
+      budgetNumber TEXT,
+      acceptanceDate TEXT,
+      ticketRef TEXT,
+      pdfFilename TEXT,
+      pdfOriginalName TEXT,
+      totalHours REAL DEFAULT 0,
+      laborBreakdown TEXT DEFAULT '[]',
+      startDate TEXT,
+      endDate TEXT,
+      status TEXT DEFAULT 'Executed',
+      category TEXT,
+      assignedPersonnel TEXT DEFAULT '[]',
+      fromAcceptedBag INTEGER DEFAULT 0,
+      executedAt TEXT DEFAULT CURRENT_TIMESTAMP,
+      createdAt TEXT,
+      updatedAt TEXT
+    )
+  `);
+
+  await run(`
     CREATE TABLE IF NOT EXISTS personnel (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
@@ -178,6 +202,9 @@ async function initDb({ run, all }) {
     'budgets:read',
     'budgets:write',
     'budgets:delete',
+    'executed_budgets:read',
+    'executed_budgets:write',
+    'executed_budgets:delete',
     'accepted_budgets:read',
     'accepted_budgets:write',
     'accepted_budgets:delete',
@@ -206,6 +233,9 @@ async function initDb({ run, all }) {
     'budgets:read',
     'budgets:write',
     'budgets:delete',
+    'executed_budgets:read',
+    'executed_budgets:write',
+    'executed_budgets:delete',
     'accepted_budgets:read',
     'accepted_budgets:write',
     'accepted_budgets:delete',
@@ -218,6 +248,7 @@ async function initDb({ run, all }) {
   ].map((n) => permIdByName.get(n)).filter(Boolean);
   const viewerPerms = [
     'budgets:read',
+    'executed_budgets:read',
     'accepted_budgets:read',
     'personnel:read',
     'pdf:read',

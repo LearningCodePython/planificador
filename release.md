@@ -151,3 +151,17 @@ Mejora de administración: gestión de usuarios/roles desde la UI.
 
 ### Notas
 - Configuración local: se pueden eliminar variables antiguas de Firebase del `.env` (no versionado; ya no se usan en runtime).
+
+## v0.8 - 2026-04-29
+
+### Tipo de release
+Mejora funcional: cierre de presupuestos y archivo de terminados.
+
+### Cambios aplicados
+- Nuevo flujo para mover presupuestos **completados** desde la mesa de planificación a **Ejecutados** conservando horas/personal/fechas.
+- Backend: nueva tabla `executed_budgets` y endpoints:
+  - `POST /api/budgets/:id/execute`
+  - `GET /api/executed-budgets`
+  - `DELETE /api/executed-budgets/:id`
+  - `GET /api/executed-budgets/:id/pdf`
+- Frontend: nueva vista/pestaña **Ejecutados** separada del dashboard principal.

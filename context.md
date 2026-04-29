@@ -18,6 +18,7 @@ A fecha **2026-04-26**, el proyecto funciona con arquitectura desacoplada:
 - Editar presupuestos directamente dentro de la bolsa.
 - Buscar por número de presupuesto dentro de la bolsa.
 - Devolver presupuestos desde la mesa a la bolsa conservando horas/desglose/personal/categoría (se eliminan fechas).
+- Mover presupuestos completados de la mesa a **Ejecutados** conservando horas/personal/fechas.
 - Gestionar personal (disponibilidad y rol).
 - Analizar ocupación y carga de trabajo.
 - Exportar datos de presupuestos a CSV.
@@ -43,11 +44,13 @@ A fecha **2026-04-26**, el proyecto funciona con arquitectura desacoplada:
   - Endpoints `/api/auth/*` (`me/login/signup/logout` + admin `users/roles`)
 - API REST local:
   - `/api/budgets`
+  - `/api/executed-budgets`
   - `/api/personnel`
   - `/api/accepted-budgets`
   - Adjuntos PDF:
     - `POST/GET/DELETE /api/accepted-budgets/:id/pdf`
     - `POST/GET/DELETE /api/budgets/:id/pdf`
+    - `GET /api/executed-budgets/:id/pdf`
 
 Endpoints admin relevantes (auth):
 - `GET /api/auth/roles`
@@ -99,6 +102,25 @@ Endpoints admin relevantes (auth):
 - `assignedPersonnel: string[]`
 - `fromAcceptedBag`
 
+### Ejecutados (`executed_budgets`)
+- `id`
+- `sourceBudgetId` (referencia al presupuesto original en mesa)
+- `name`
+- `budgetNumber`
+- `acceptanceDate`
+- `ticketRef`
+- `pdfFilename`
+- `pdfOriginalName`
+- `totalHours`
+- `laborBreakdown: [{ type, hours }]`
+- `startDate`
+- `endDate`
+- `status`
+- `category`
+- `assignedPersonnel: string[]`
+- `fromAcceptedBag`
+- `executedAt`
+
 ### Personal (`personnel`)
 - `id`
 - `name`
@@ -129,6 +151,7 @@ Endpoints admin relevantes (auth):
 ## Notas de migración recientes
 - La tabla `accepted_budgets` se amplía automáticamente al arrancar el backend (ALTER TABLE) para incluir campos de planificación (horas/desglose/personal/categoría).
 - Al devolver un presupuesto desde la mesa de planificación a la bolsa se conservan esos campos y se eliminan las fechas (`startDate/endDate`) porque en la bolsa se gestiona sin calendario.
+- Al pasar un presupuesto a **Ejecutados**, se conserva la planificación (fechas, horas, desglose y personal) y se elimina de la mesa.
 
 ## Carencias técnicas activas
 - Falta suite de pruebas automáticas completa (API e integración frontend-backend).

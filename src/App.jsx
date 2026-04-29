@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import BudgetDashboard from './BudgetDashboard';
 import PersonnelManager from './PersonnelManager';
+import ExecutedBudgets from './ExecutedBudgets';
 import MessageModal from './components/MessageModal';
 import { AppProvider } from './contexts/AppContext';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
@@ -11,7 +12,7 @@ import UserAdmin from './components/UserAdmin';
 const AppContent = () => {
   const { logOut, user } = useAppContext();
   const { theme, toggleTheme } = useTheme();
-  const [activeView, setActiveView] = useState('budgets'); // 'budgets' o 'personnel'
+  const [activeView, setActiveView] = useState('budgets');
   const isAdmin = Boolean(user?.roles?.includes('admin'));
 
   const getButtonClass = (viewName) => 
@@ -46,6 +47,9 @@ const AppContent = () => {
           <button onClick={() => setActiveView('budgets')} className={getButtonClass('budgets')}>
             Panel de Presupuestos
           </button>
+          <button onClick={() => setActiveView('executed')} className={getButtonClass('executed')}>
+            Ejecutados
+          </button>
           <button onClick={() => setActiveView('personnel')} className={getButtonClass('personnel')}>
             Gestión de Personal
           </button>
@@ -58,6 +62,7 @@ const AppContent = () => {
 
         <div className="grid grid-cols-1 gap-6">
           {activeView === 'budgets' && <BudgetDashboard />}
+          {activeView === 'executed' && <ExecutedBudgets />}
           {activeView === 'personnel' && <PersonnelManager />}
           {activeView === 'users' && <UserAdmin />}
         </div>

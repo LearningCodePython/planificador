@@ -27,6 +27,17 @@ function parseAcceptedRow(row) {
   };
 }
 
+function parseExecutedRow(row) {
+  return {
+    ...row,
+    id: String(row.id),
+    sourceBudgetId: row.sourceBudgetId == null ? null : String(row.sourceBudgetId),
+    laborBreakdown: JSON.parse(row.laborBreakdown || '[]'),
+    assignedPersonnel: JSON.parse(row.assignedPersonnel || '[]'),
+    fromAcceptedBag: Boolean(row.fromAcceptedBag),
+  };
+}
+
 function parsePersonnelRow(row) {
   return {
     ...row,
@@ -58,7 +69,10 @@ async function createApp(options = {}) {
     try {
       const budgetsCount = await get('SELECT COUNT(*) as count FROM budgets WHERE pdfFilename = ?', [filename]);
       const acceptedCount = await get('SELECT COUNT(*) as count FROM accepted_budgets WHERE pdfFilename = ?', [filename]);
-      const inUse = Number(budgetsCount?.count || 0) + Number(acceptedCount?.count || 0);
+      const executedCount = await get('SELECT COUNT(*) as count FROM executed_budgets WHERE pdfFilename = ?', [filename]);
+      const inUse = Number(budgetsCount?.count || 0)
+        + Number(acceptedCount?.count || 0)
+        + Number(executedCount?.count || 0);
       if (inUse > 0) return;
       const filePath = path.join(pdfDir, filename);
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
@@ -86,6 +100,26 @@ async function createApp(options = {}) {
     try {
       const rows = await all('SELECT * FROM budgets ORDER BY id DESC');
       res.json(rows.map(parseBudgetRow));
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get('/api/executed-budgets', auth.requirePermission('executed_budgets:read'), async (_req, res) => {
+    try {
+      const rows = await all('SELECT * FROM executed_budgets ORDER BY id DESC');
+      res.json(rows.map(parseExecutedRow));
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete('/api/executed-budgets/:id', auth.requirePermission('executed_budgets:delete'), async (req, res) => {
+    try {
+      const existing = await get('SELECT pdfFilename FROM executed_budgets WHERE id = ?', [Number(req.params.id)]);
+      await run('DELETE FROM executed_budgets WHERE id = ?', [Number(req.params.id)]);
+      await maybeDeletePdfFile(existing?.pdfFilename || null);
+      res.status(204).send();
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
@@ -121,6 +155,48 @@ async function createApp(options = {}) {
       res.status(201).json(parseBudgetRow(created[0]));
     } catch (error) {
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post('/api/budgets/:id/execute', auth.requirePermission('executed_budgets:write'), async (req, res) => {
+    try {
+      const budgetId = Number(req.params.id);
+      const existing = await get('SELECT * FROM budgets WHERE id = ?', [budgetId]);
+      if (!existing) return res.status(404).json({ error: 'Budget not found' });
+
+      const payload = parseBudgetRow(existing);
+      await run(
+        `INSERT INTO executed_budgets (
+          sourceBudgetId,
+          name, budgetNumber, acceptanceDate, ticketRef, pdfFilename, pdfOriginalName, totalHours, laborBreakdown,
+          startDate, endDate, status, category, assignedPersonnel, fromAcceptedBag,
+          createdAt, updatedAt
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          budgetId,
+          payload.name || '',
+          payload.budgetNumber || '',
+          payload.acceptanceDate || '',
+          payload.ticketRef || '',
+          payload.pdfFilename || null,
+          payload.pdfOriginalName || null,
+          Number(payload.totalHours || 0),
+          JSON.stringify(payload.laborBreakdown || []),
+          payload.startDate || '',
+          payload.endDate || '',
+          payload.status || 'Executed',
+          payload.category || '',
+          JSON.stringify(payload.assignedPersonnel || []),
+          payload.fromAcceptedBag ? 1 : 0,
+          existing.createdAt || null,
+          existing.updatedAt || null,
+        ]
+      );
+
+      await run('DELETE FROM budgets WHERE id = ?', [budgetId]);
+      return res.status(204).send();
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
     }
   });
 
@@ -393,6 +469,21 @@ async function createApp(options = {}) {
     }
   });
 
+  app.get('/api/executed-budgets/:id/pdf', auth.requirePermission('pdf:read'), async (req, res) => {
+    try {
+      const executedId = Number(req.params.id);
+      const existing = await get('SELECT pdfFilename, pdfOriginalName FROM executed_budgets WHERE id = ?', [executedId]);
+      if (!existing) return res.status(404).json({ error: 'Executed budget not found' });
+      if (!existing.pdfFilename) return res.status(404).json({ error: 'No PDF available' });
+
+      const filePath = path.join(pdfDir, existing.pdfFilename);
+      if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'PDF file missing on server' });
+      return res.download(filePath, existing.pdfOriginalName || 'presupuesto.pdf');
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post('/api/budgets/:id/pdf', auth.requirePermission('pdf:write'), pdfUpload.single('file'), async (req, res) => {
     try {
       const budgetId = Number(req.params.id);
@@ -459,4 +550,3 @@ async function createApp(options = {}) {
 }
 
 module.exports = { createApp };
-

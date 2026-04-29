@@ -64,6 +64,7 @@ export const useBudgets = () => {
 
   const [budgets, setBudgets] = useState([]);
   const [acceptedBudgets, setAcceptedBudgets] = useState([]);
+  const [executedBudgets, setExecutedBudgets] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('Todas');
   const [acceptedBudgetPdfFile, setAcceptedBudgetPdfFile] = useState(null);
 
@@ -122,10 +123,26 @@ export const useBudgets = () => {
     }
   }, [showMessageWithTimeout, logOut]);
 
+  const loadExecutedBudgets = useCallback(async () => {
+    try {
+      const data = await apiFetch('/executed-budgets');
+      setExecutedBudgets(data || []);
+    } catch (error) {
+      console.error('Error loading executed budgets:', error);
+      if (error.code === 'unauthorized') {
+        await logOut();
+        showMessageWithTimeout('Sesión expirada. Inicia sesión de nuevo.');
+        return;
+      }
+      showMessageWithTimeout(`Error al cargar ejecutados: ${error.message}`);
+    }
+  }, [showMessageWithTimeout, logOut]);
+
   useEffect(() => {
     loadBudgets();
     loadAcceptedBudgets();
-  }, [loadBudgets, loadAcceptedBudgets]);
+    loadExecutedBudgets();
+  }, [loadBudgets, loadAcceptedBudgets, loadExecutedBudgets]);
 
   const updateBudgetForm = useCallback((field, value) => {
     setBudgetForm((prev) => ({ ...prev, [field]: value }));
@@ -456,6 +473,48 @@ export const useBudgets = () => {
     }
   }, [budgets, loadBudgets, loadAcceptedBudgets, showMessageWithTimeout, logOut]);
 
+  const moveBudgetToExecuted = useCallback(async (budgetId) => {
+    const selected = budgets.find((item) => item.id === budgetId);
+    if (!selected) {
+      showMessageWithTimeout('No se encontró el presupuesto en la mesa de planificación.');
+      return false;
+    }
+
+    try {
+      await apiFetch(`/budgets/${budgetId}/execute`, { method: 'POST' });
+      await Promise.all([loadBudgets(), loadExecutedBudgets()]);
+      showMessageWithTimeout('Presupuesto movido a ejecutados.');
+      return true;
+    } catch (error) {
+      console.error('Error moving budget to executed:', error);
+      if (error.code === 'unauthorized') {
+        await logOut();
+        showMessageWithTimeout('Sesión expirada. Inicia sesión de nuevo.');
+        return false;
+      }
+      showMessageWithTimeout(`Error al mover a ejecutados: ${error.message}`);
+      return false;
+    }
+  }, [budgets, loadBudgets, loadExecutedBudgets, showMessageWithTimeout, logOut]);
+
+  const deleteExecutedBudget = useCallback(async (executedBudgetId) => {
+    try {
+      await apiFetch(`/executed-budgets/${executedBudgetId}`, { method: 'DELETE' });
+      loadExecutedBudgets();
+      showMessageWithTimeout('Presupuesto eliminado de ejecutados.');
+      return true;
+    } catch (error) {
+      console.error('Error deleting executed budget:', error);
+      if (error.code === 'unauthorized') {
+        await logOut();
+        showMessageWithTimeout('Sesión expirada. Inicia sesión de nuevo.');
+        return false;
+      }
+      showMessageWithTimeout(`Error al eliminar ejecutado: ${error.message}`);
+      return false;
+    }
+  }, [loadExecutedBudgets, showMessageWithTimeout, logOut]);
+
   const addLaborType = useCallback(() => {
     setBudgetForm((prev) => ({
       ...prev,
@@ -534,6 +593,7 @@ export const useBudgets = () => {
   return {
     budgets,
     acceptedBudgets,
+    executedBudgets,
     budgetForm,
     acceptedBudgetForm,
     acceptedBudgetPdfFile,
@@ -552,6 +612,8 @@ export const useBudgets = () => {
     moveAcceptedToPlanning,
     deleteAcceptedBudget,
     moveBudgetToAcceptedBag,
+    moveBudgetToExecuted,
+    deleteExecutedBudget,
     addLaborType,
     updateLaborBreakdown,
     removeLaborType,
