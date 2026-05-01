@@ -333,13 +333,14 @@ async function createApp(options = {}) {
       const payload = req.body || {};
       const result = await run(
         `INSERT INTO accepted_budgets (
-          name, budgetNumber, acceptanceDate, status,
+          name, client, budgetNumber, acceptanceDate, status,
           ticketRef, pdfFilename, pdfOriginalName,
           totalHours, laborBreakdown, category, assignedPersonnel,
           updatedAt
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
         [
           payload.name || '',
+          payload.client || '',
           payload.budgetNumber || '',
           payload.acceptanceDate || '',
           payload.status || 'Accepted',
@@ -365,6 +366,7 @@ async function createApp(options = {}) {
       await run(
         `UPDATE accepted_budgets SET
           name = ?,
+          client = ?,
           budgetNumber = ?,
           acceptanceDate = ?,
           ticketRef = ?,
@@ -377,6 +379,7 @@ async function createApp(options = {}) {
         WHERE id = ?`,
         [
           payload.name || '',
+          payload.client || '',
           payload.budgetNumber || '',
           payload.acceptanceDate || '',
           payload.ticketRef || '',

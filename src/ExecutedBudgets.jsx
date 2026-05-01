@@ -1,10 +1,30 @@
 import React, { useMemo, useState } from 'react';
 import { useBudgets, usePersonnel } from './hooks';
 
+function formatDate(value) {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString('es-ES');
+}
+
+function formatDateTime(value) {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString('es-ES');
+}
+
 function ExecutedBudgets() {
   const { executedBudgets, deleteExecutedBudget } = useBudgets();
   const { personnel } = usePersonnel();
   const [search, setSearch] = useState('');
+
+  const personnelById = useMemo(() => {
+    const map = new Map();
+    for (const person of personnel) map.set(person.id, person);
+    return map;
+  }, [personnel]);
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -36,54 +56,78 @@ function ExecutedBudgets() {
         {filtered.length === 0 ? (
           <p className="text-gray-500">No hay presupuestos ejecutados.</p>
         ) : (
-          <div className="space-y-4">
-            {filtered.map((budget) => {
-              const assignedPeople = personnel.filter((p) => (budget.assignedPersonnel || []).includes(p.id));
-              return (
-                <div key={budget.id} className="bg-emerald-50 p-4 rounded-lg shadow-sm border border-emerald-100">
-                  <p className="text-lg font-semibold text-emerald-800">{budget.name}</p>
-                  <p className="text-sm text-gray-600">Numero: {budget.budgetNumber || '-'}</p>
-                  {budget.ticketRef ? <p className="text-sm text-gray-600">#Ticket: {budget.ticketRef}</p> : null}
-                  <p className="text-sm text-gray-600">Fecha de aceptacion: {budget.acceptanceDate || '-'}</p>
-                  <p className="text-sm text-gray-600">Horas Totales: {budget.totalHours}</p>
-                  <p className="text-sm text-gray-600">Inicio: {budget.startDate} | Fin: {budget.endDate}</p>
-                  {budget.executedAt ? <p className="text-xs text-gray-500 mt-1">Ejecutado: {budget.executedAt}</p> : null}
+          <div className="overflow-x-auto rounded-lg border border-gray-300 bg-white shadow-sm">
+            <table className="min-w-full text-sm">
+              <thead className="bg-gray-50 text-gray-700">
+                <tr className="[&>th]:px-3 [&>th]:py-2 [&>th]:text-left [&>th]:font-semibold [&>th]:whitespace-nowrap">
+                  <th>Nombre</th>
+                  <th>Nº</th>
+                  <th>#Ticket</th>
+                  <th>Aceptación</th>
+                  <th>Inicio</th>
+                  <th>Fin</th>
+                  <th className="text-right">Horas</th>
+                  <th>Personal</th>
+                  <th>PDF</th>
+                  <th>Ejecutado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {filtered.map((budget) => {
+                  const assigned = (budget.assignedPersonnel || [])
+                    .map((id) => personnelById.get(id))
+                    .filter(Boolean);
+                  const assignedText = assigned.length
+                    ? assigned.map((p) => `${p.name} (${p.laborType})`).join(', ')
+                    : '-';
 
-                  {assignedPeople.length > 0 && (
-                    <div className="mt-2 text-sm text-gray-700">
-                      <span className="font-medium">Personal Asignado:</span>
-                      <ul className="list-disc list-inside">
-                        {assignedPeople.map((person) => (
-                          <li key={person.id}>{person.name} ({person.laborType})</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  <div className="mt-4 flex flex-col sm:flex-row gap-2">
-                    {budget.pdfFilename ? (
-                      <a
-                        className="flex-1 bg-emerald-700 text-white py-1 px-3 rounded-md hover:bg-emerald-800 transition duration-300 ease-in-out text-sm shadow-sm text-center"
-                        href={`/api/executed-budgets/${budget.id}/pdf`}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        Ver PDF
-                      </a>
-                    ) : null}
-                    <button
-                      onClick={() => {
-                        const ok = window.confirm('Eliminará el presupuesto de "Ejecutados". ¿Continuar?');
-                        if (ok) deleteExecutedBudget(budget.id);
-                      }}
-                      className="flex-1 bg-red-500 text-white py-1 px-3 rounded-md hover:bg-red-600 transition duration-300 ease-in-out text-sm shadow-sm"
+                  return (
+                    <tr
+                      key={budget.id}
+                      className="hover:bg-emerald-50/40 [&>td]:px-3 [&>td]:py-2 [&>td]:align-top"
                     >
-                      Eliminar
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+                      <td className="font-medium text-gray-900">{budget.name || '-'}</td>
+                      <td className="whitespace-nowrap text-gray-700">{budget.budgetNumber || '-'}</td>
+                      <td className="whitespace-nowrap text-gray-700">{budget.ticketRef || '-'}</td>
+                      <td className="whitespace-nowrap text-gray-700">{formatDate(budget.acceptanceDate)}</td>
+                      <td className="whitespace-nowrap text-gray-700">{formatDate(budget.startDate)}</td>
+                      <td className="whitespace-nowrap text-gray-700">{formatDate(budget.endDate)}</td>
+                      <td className="whitespace-nowrap text-right tabular-nums text-gray-700">
+                        {budget.totalHours ?? '-'}
+                      </td>
+                      <td className="min-w-64 text-gray-700">{assignedText}</td>
+                      <td className="whitespace-nowrap">
+                        {budget.pdfFilename ? (
+                          <a
+                            className="text-emerald-700 hover:text-emerald-900 underline underline-offset-2"
+                            href={`/api/executed-budgets/${budget.id}/pdf`}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            Ver
+                          </a>
+                        ) : (
+                          <span className="text-gray-400">—</span>
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap text-gray-700">{formatDateTime(budget.executedAt)}</td>
+                      <td className="whitespace-nowrap">
+                        <button
+                          onClick={() => {
+                            const ok = window.confirm('Eliminará el presupuesto de "Ejecutados". ¿Continuar?');
+                            if (ok) deleteExecutedBudget(budget.id);
+                          }}
+                          className="bg-red-500 text-white py-1 px-3 rounded-md hover:bg-red-600 transition duration-300 ease-in-out text-xs shadow-sm"
+                        >
+                          Eliminar
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
@@ -92,4 +136,3 @@ function ExecutedBudgets() {
 }
 
 export default ExecutedBudgets;
-

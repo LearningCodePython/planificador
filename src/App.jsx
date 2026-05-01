@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import BudgetDashboard from './BudgetDashboard';
+import PlanningView from './PlanningView';
 import PersonnelManager from './PersonnelManager';
 import ExecutedBudgets from './ExecutedBudgets';
 import MessageModal from './components/MessageModal';
@@ -12,7 +13,7 @@ import UserAdmin from './components/UserAdmin';
 const AppContent = () => {
   const { logOut, user } = useAppContext();
   const { theme, toggleTheme } = useTheme();
-  const [activeView, setActiveView] = useState('budgets');
+  const [activeView, setActiveView] = useState('dashboard');
   const isAdmin = Boolean(user?.roles?.includes('admin'));
 
   const getButtonClass = (viewName) => 
@@ -44,8 +45,11 @@ const AppContent = () => {
         </div>
 
         <div className="mb-6 flex items-center gap-4">
-          <button onClick={() => setActiveView('budgets')} className={getButtonClass('budgets')}>
-            Panel de Presupuestos
+          <button onClick={() => setActiveView('dashboard')} className={getButtonClass('dashboard')}>
+            Dashboard (Carga)
+          </button>
+          <button onClick={() => setActiveView('planning')} className={getButtonClass('planning')}>
+            Planificación
           </button>
           <button onClick={() => setActiveView('executed')} className={getButtonClass('executed')}>
             Ejecutados
@@ -61,7 +65,8 @@ const AppContent = () => {
         </div>
 
         <div className="grid grid-cols-1 gap-6">
-          {activeView === 'budgets' && <BudgetDashboard />}
+          {activeView === 'dashboard' && <BudgetDashboard />}
+          {activeView === 'planning' && <PlanningView />}
           {activeView === 'executed' && <ExecutedBudgets />}
           {activeView === 'personnel' && <PersonnelManager />}
           {activeView === 'users' && <UserAdmin />}

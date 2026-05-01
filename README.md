@@ -20,6 +20,15 @@ Estado actual: arquitectura desacoplada en **frontend + backend + SQLite** ejecu
 
 ## Funcionalidades
 
+## Vistas (UI)
+
+La aplicación se organiza en pestañas:
+- **Dashboard (Carga)**: visual de carga de trabajo y resúmenes.
+- **Planificación**: bolsa de aceptados, mesa de planificación y lista de presupuestos planificados.
+- **Ejecutados**: presupuestos archivados/terminados.
+- **Gestión de Personal**: mantenimiento de personal y capacidad.
+- **Usuarios** (solo `admin`): administración de usuarios/roles.
+
 ### Presupuestos
 - Crear, editar y eliminar presupuestos.
 - Campo `#Ticket` asociado (trazabilidad externa).
@@ -32,12 +41,13 @@ Estado actual: arquitectura desacoplada en **frontend + backend + SQLite** ejecu
 ### Bolsa de Presupuestos Aceptados
 - Alta rápida con:
   - Nombre
+  - Cliente
   - Número de presupuesto
   - `#Ticket` (opcional)
   - Fecha de aceptación
 - Subida de PDF del presupuesto (opcional).
 - Edición de presupuestos dentro de la bolsa.
-- Búsqueda por número de presupuesto dentro de la bolsa.
+- Búsqueda por **número o cliente** dentro de la bolsa.
 - Movimiento de la bolsa a la mesa de planificación.
 - Devolución desde la mesa de planificación a la bolsa (conserva horas/desglose/personal/categoría y elimina fechas).
 
@@ -78,7 +88,7 @@ Estado actual: arquitectura desacoplada en **frontend + backend + SQLite** ejecu
 - `id`, `name`, `laborType`, `hoursPerDay`, `daysPerWeek`
 
 ### `accepted_budgets`
-- `id`, `name`, `budgetNumber`, `acceptanceDate`, `status`, `ticketRef`
+- `id`, `name`, `client`, `budgetNumber`, `acceptanceDate`, `status`, `ticketRef`
 - `pdfFilename`, `pdfOriginalName` (metadatos del adjunto)
 - `totalHours`, `laborBreakdown`, `category`, `assignedPersonnel`
 

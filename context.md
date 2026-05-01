@@ -3,7 +3,7 @@
 ## Resumen
 **Planificador de Recursos y Presupuestos** es una aplicación web para gestionar presupuestos, personal y planificación de capacidad.
 
-A fecha **2026-04-26**, el proyecto funciona con arquitectura desacoplada:
+A fecha **2026-05-01**, el proyecto funciona con arquitectura desacoplada:
 - Frontend React
 - Backend Express
 - Base de datos SQLite
@@ -31,6 +31,10 @@ A fecha **2026-04-26**, el proyecto funciona con arquitectura desacoplada:
 - Recharts
 - Autenticación: sesión backend (cookie HttpOnly) consumida desde `useBackendAuth`.
 - Gestión admin (UI): pestaña **Usuarios** visible solo para rol `admin` (alta/roles/activación/reset password).
+- Vistas UI:
+  - **Dashboard (Carga)**: carga de trabajo, resumen por tipo y gráfico de ocupación.
+  - **Planificación**: bolsa de aceptados, mesa y lista de planificados.
+  - **Ejecutados**: listado en formato tabla (columnas).
 - Hooks de dominio:
   - `useBudgets` (vía API REST)
   - `usePersonnel` (vía API REST)
@@ -72,8 +76,11 @@ Endpoints admin relevantes (auth):
 
 ## Estructura principal
 - `src/App.jsx`: composición de vistas/proveedores.
-- `src/BudgetDashboard.jsx`: bolsa de aceptados, planificación y analítica.
+- `src/BudgetDashboard.jsx`: dashboard principal de carga de trabajo (resúmenes y gráfico).
+- `src/PlanningView.jsx`: bolsa de aceptados + mesa de planificación + lista de planificados.
 - `src/PersonnelManager.jsx`: gestión de personal.
+- `src/ExecutedBudgets.jsx`: ejecutados en formato tabla.
+- `src/components/CollapsibleCard.jsx`: tarjetas colapsables con persistencia en `localStorage`.
 - `src/hooks/useBudgets.js`: integración completa con API de presupuestos y bolsa.
 - `src/hooks/usePersonnel.js`: integración con API de personal.
 - `src/hooks/useBackendAuth.js`: autenticación real (sesión backend).
@@ -131,6 +138,7 @@ Endpoints admin relevantes (auth):
 ### Bolsa de aceptados (`accepted_budgets`)
 - `id`
 - `name`
+- `client`
 - `budgetNumber`
 - `acceptanceDate`
 - `ticketRef`
@@ -150,6 +158,7 @@ Endpoints admin relevantes (auth):
 
 ## Notas de migración recientes
 - La tabla `accepted_budgets` se amplía automáticamente al arrancar el backend (ALTER TABLE) para incluir campos de planificación (horas/desglose/personal/categoría).
+- Se añadió el campo `client` en `accepted_budgets` (migración automática con `ALTER TABLE`).
 - Al devolver un presupuesto desde la mesa de planificación a la bolsa se conservan esos campos y se eliminan las fechas (`startDate/endDate`) porque en la bolsa se gestiona sin calendario.
 - Al pasar un presupuesto a **Ejecutados**, se conserva la planificación (fechas, horas, desglose y personal) y se elimina de la mesa.
 

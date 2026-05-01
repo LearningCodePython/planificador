@@ -165,3 +165,15 @@ Mejora funcional: cierre de presupuestos y archivo de terminados.
   - `DELETE /api/executed-budgets/:id`
   - `GET /api/executed-budgets/:id/pdf`
 - Frontend: nueva vista/pestaña **Ejecutados** separada del dashboard principal.
+
+## v0.9 - 2026-05-01
+
+### Tipo de release
+Mejoras de UX + reorganización de vistas (dashboard enfocado en carga).
+
+### Cambios aplicados
+- Ejecutados: vista en formato tabla (columnas) en lugar de tarjetas.
+- Bolsa de aceptados: nuevo campo `Cliente` y búsqueda por número o cliente.
+- Dashboard: añade horas **disponibles mensuales** por tipo (a partir de “Gestión de Personal”) junto a las horas usadas.
+- UI: todas las tarjetas del dashboard/planificación son colapsables (persisten estado en `localStorage`).
+- UI: se separa **Planificación** (bolsa + mesa + lista planificados) del **Dashboard (Carga)**.

@@ -113,6 +113,7 @@ async function initDb({ run, all }) {
     CREATE TABLE IF NOT EXISTS accepted_budgets (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
+      client TEXT,
       budgetNumber TEXT NOT NULL,
       acceptanceDate TEXT NOT NULL,
       ticketRef TEXT,
@@ -131,6 +132,7 @@ async function initDb({ run, all }) {
   // Lightweight migration for accepted_budgets on existing DBs.
   const acceptedCols = await all(`PRAGMA table_info(accepted_budgets)`);
   const acceptedColNames = new Set((acceptedCols || []).map((c) => c.name));
+  if (!acceptedColNames.has('client')) await run(`ALTER TABLE accepted_budgets ADD COLUMN client TEXT`);
   if (!acceptedColNames.has('ticketRef')) await run(`ALTER TABLE accepted_budgets ADD COLUMN ticketRef TEXT`);
   if (!acceptedColNames.has('pdfFilename')) await run(`ALTER TABLE accepted_budgets ADD COLUMN pdfFilename TEXT`);
   if (!acceptedColNames.has('pdfOriginalName')) await run(`ALTER TABLE accepted_budgets ADD COLUMN pdfOriginalName TEXT`);

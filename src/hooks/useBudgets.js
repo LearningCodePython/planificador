@@ -71,6 +71,7 @@ export const useBudgets = () => {
   const [acceptedBudgetForm, setAcceptedBudgetForm] = useState({
     id: null,
     name: '',
+    client: '',
     budgetNumber: '',
     acceptanceDate: '',
     ticketRef: '',
@@ -156,6 +157,7 @@ export const useBudgets = () => {
     setAcceptedBudgetForm({
       id: null,
       name: '',
+      client: '',
       budgetNumber: '',
       acceptanceDate: '',
       ticketRef: '',
@@ -294,6 +296,7 @@ export const useBudgets = () => {
     try {
       const payload = {
         name: acceptedBudgetForm.name,
+        client: acceptedBudgetForm.client || '',
         budgetNumber: acceptedBudgetForm.budgetNumber,
         acceptanceDate: acceptedBudgetForm.acceptanceDate,
         ticketRef: acceptedBudgetForm.ticketRef || '',
@@ -346,6 +349,7 @@ export const useBudgets = () => {
     setAcceptedBudgetForm({
       id: accepted.id,
       name: accepted.name || '',
+      client: accepted.client || '',
       budgetNumber: accepted.budgetNumber || '',
       acceptanceDate: accepted.acceptanceDate || '',
       ticketRef: accepted.ticketRef || '',
