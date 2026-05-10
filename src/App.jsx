@@ -9,6 +9,7 @@ import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import AuthWrapper from './components/AuthWrapper';
 import { useAppContext } from './contexts/AppContext';
 import UserAdmin from './components/UserAdmin';
+import GuidedTour from './components/GuidedTour';
 
 const AppContent = () => {
   const { logOut, user } = useAppContext();
@@ -30,6 +31,15 @@ const AppContent = () => {
           
           <div className="flex items-center gap-2">
             {user && <span className='text-sm'>{user.email}</span>}
+            <button
+              type="button"
+              data-tour="tour-button"
+              onClick={() => window.dispatchEvent(new CustomEvent('planificador:tour:start'))}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-3 rounded transition duration-300 ease-in-out text-sm"
+              title="Iniciar tour guiado"
+            >
+              Tour
+            </button>
             <button onClick={toggleTheme} className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700">
               {theme === 'light' ? '🌙' : '☀️'}
             </button>
@@ -44,21 +54,21 @@ const AppContent = () => {
           </div>
         </div>
 
-        <div className="mb-6 flex items-center gap-4">
-          <button onClick={() => setActiveView('dashboard')} className={getButtonClass('dashboard')}>
+        <div className="mb-6 flex items-center gap-4" data-tour="nav-tabs">
+          <button data-tour="tab-dashboard" onClick={() => setActiveView('dashboard')} className={getButtonClass('dashboard')}>
             Dashboard (Carga)
           </button>
-          <button onClick={() => setActiveView('planning')} className={getButtonClass('planning')}>
+          <button data-tour="tab-planning" onClick={() => setActiveView('planning')} className={getButtonClass('planning')}>
             Planificación
           </button>
-          <button onClick={() => setActiveView('executed')} className={getButtonClass('executed')}>
+          <button data-tour="tab-executed" onClick={() => setActiveView('executed')} className={getButtonClass('executed')}>
             Ejecutados
           </button>
-          <button onClick={() => setActiveView('personnel')} className={getButtonClass('personnel')}>
+          <button data-tour="tab-personnel" onClick={() => setActiveView('personnel')} className={getButtonClass('personnel')}>
             Gestión de Personal
           </button>
           {isAdmin && (
-            <button onClick={() => setActiveView('users')} className={getButtonClass('users')}>
+            <button data-tour="tab-users" onClick={() => setActiveView('users')} className={getButtonClass('users')}>
               Usuarios
             </button>
           )}
@@ -74,6 +84,7 @@ const AppContent = () => {
 
         <MessageModal />
       </div>
+      <GuidedTour activeView={activeView} setActiveView={setActiveView} isAdmin={isAdmin} />
     </div>
   );
 }

@@ -39,7 +39,7 @@ function ExecutedBudgets() {
           Presupuestos Ejecutados
         </h2>
 
-        <div className="mb-4">
+        <div className="mb-4" data-tour="executed-search">
           <label htmlFor="executedSearch" className="block text-sm font-medium text-gray-700 mb-1">
             Buscar por número de presupuesto
           </label>

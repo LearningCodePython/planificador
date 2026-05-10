@@ -48,7 +48,7 @@ function PersonnelManager() {
       <h2 className="text-2xl font-bold text-indigo-700 mb-6 border-b pb-3 border-indigo-200">
         👥 Gestión de Personal
       </h2>
-      <div className="space-y-4 mb-6">
+      <div className="space-y-4 mb-6" data-tour="personnel-form">
         <div>
           <label htmlFor="personnelName" className="block text-sm font-medium text-gray-700">Nombre del Empleado</label>
           <input

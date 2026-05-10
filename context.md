@@ -3,7 +3,7 @@
 ## Resumen
 **Planificador de Recursos y Presupuestos** es una aplicación web para gestionar presupuestos, personal y planificación de capacidad.
 
-A fecha **2026-05-01**, el proyecto funciona con arquitectura desacoplada:
+A fecha **2026-05-10**, el proyecto funciona con arquitectura desacoplada:
 - Frontend React
 - Backend Express
 - Base de datos SQLite
@@ -29,6 +29,7 @@ A fecha **2026-05-01**, el proyecto funciona con arquitectura desacoplada:
 - React 18 (`react-scripts`)
 - Tailwind CSS
 - Recharts
+- Tour guiado (onboarding): `react-joyride` integrado en la UI y relanzable desde botón **Tour**.
 - Autenticación: sesión backend (cookie HttpOnly) consumida desde `useBackendAuth`.
 - Gestión admin (UI): pestaña **Usuarios** visible solo para rol `admin` (alta/roles/activación/reset password).
 - Vistas UI:
@@ -81,6 +82,7 @@ Endpoints admin relevantes (auth):
 - `src/PersonnelManager.jsx`: gestión de personal.
 - `src/ExecutedBudgets.jsx`: ejecutados en formato tabla.
 - `src/components/CollapsibleCard.jsx`: tarjetas colapsables con persistencia en `localStorage`.
+- `src/components/GuidedTour.jsx`: tour guiado (React Joyride), pasos por vistas y persistencia del estado.
 - `src/hooks/useBudgets.js`: integración completa con API de presupuestos y bolsa.
 - `src/hooks/usePersonnel.js`: integración con API de personal.
 - `src/hooks/useBackendAuth.js`: autenticación real (sesión backend).
@@ -155,6 +157,7 @@ Endpoints admin relevantes (auth):
 - Persistencia unificada en SQLite para facilitar pruebas, backup y control de datos.
 - La API está protegida por autenticación backend real (sesión) y autorización por roles/permisos.
 - Adjuntos PDF: almacenados en volumen del backend (ruta contenedor: `/app/upload/pdfs`).
+- Compatibilidad iPad/Safari iOS 12.x: build dirigido a `ios_saf >= 12.0` + polyfills globales (`react-app-polyfill/stable`) para evitar roturas por sintaxis/APIs modernas.
 
 ## Notas de migración recientes
 - La tabla `accepted_budgets` se amplía automáticamente al arrancar el backend (ALTER TABLE) para incluir campos de planificación (horas/desglose/personal/categoría).

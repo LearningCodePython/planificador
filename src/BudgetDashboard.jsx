@@ -117,7 +117,8 @@ function BudgetDashboard() {
       {/* Columna Izquierda: Resúmenes */}
       <div className="flex-1 space-y-8">
         {/* Carga de Trabajo por Personal (MOVIDO) */}
-        <CollapsibleCard storageKey="workload" title="📋 Carga de Trabajo por Persona" headerClassName="mb-6 border-b pb-3 border-gray-400">
+        <div data-tour="dashboard-workload">
+          <CollapsibleCard storageKey="workload" title="📋 Carga de Trabajo por Persona" headerClassName="mb-6 border-b pb-3 border-gray-400">
           {workloadSummary.length === 0 ? (
             <p className="text-gray-500">No hay datos suficientes para calcular la carga.</p>
           ) : (
@@ -209,7 +210,8 @@ function BudgetDashboard() {
               })}
             </div>
           )}
-        </CollapsibleCard>
+          </CollapsibleCard>
+        </div>
 
         {/* NUEVO: Resumen de Horas Totales por Tipo */}
         <CollapsibleCard storageKey="hours_by_type" title="📊 Resumen de Horas por Tipo" headerClassName="mb-6 border-b pb-3 border-gray-400">

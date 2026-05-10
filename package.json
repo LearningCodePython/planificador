@@ -5,9 +5,10 @@
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-joyride": "^2.9.3",
+    "react-router-dom": "^6.26.1",
     "react-scripts": "5.0.1",
-    "recharts": "^2.9.0",
-    "react-router-dom": "^6.26.1"
+    "recharts": "^2.9.0"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -18,8 +19,8 @@
   "browserslist": {
     "production": [
       ">0.2%",
-      "not dead",
-      "not op_mini all"
+      "not op_mini all",
+      "ios_saf >= 12.0"
     ],
     "development": [
       "last 1 chrome version",

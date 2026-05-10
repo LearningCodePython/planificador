@@ -28,6 +28,7 @@ La aplicación se organiza en pestañas:
 - **Ejecutados**: presupuestos archivados/terminados.
 - **Gestión de Personal**: mantenimiento de personal y capacidad.
 - **Usuarios** (solo `admin`): administración de usuarios/roles.
+- **Tour**: tour guiado de onboarding para usuarios (React Joyride).
 
 ### Presupuestos
 - Crear, editar y eliminar presupuestos.
@@ -95,6 +96,23 @@ La aplicación se organiza en pestañas:
 ## Puesta en marcha con Docker
 
 Requisito: Docker + Docker Compose.
+
+## Tour guiado (onboarding)
+
+La aplicación incluye un tour guiado para mostrar funcionalidades a nuevos usuarios (librería `react-joyride`).
+
+- Se lanza automáticamente la primera vez por navegador.
+- Se puede relanzar desde el botón **Tour** en la cabecera.
+- El estado “completado” se guarda en `localStorage`.
+
+Implementación: `src/components/GuidedTour.jsx`.
+
+## Compatibilidad Safari (iPad iOS 12.x)
+
+Para soportar iPads con iOS 12.x (Safari antiguo), el build fuerza el target `ios_saf >= 12.0` y carga polyfills globales.
+
+- Targets: `package.json` → `browserslist.production`
+- Polyfills: `src/index.js` → `react-app-polyfill/stable`
 
 ### Local (sin Traefik)
 

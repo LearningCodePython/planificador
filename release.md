@@ -177,3 +177,17 @@ Mejoras de UX + reorganización de vistas (dashboard enfocado en carga).
 - Dashboard: añade horas **disponibles mensuales** por tipo (a partir de “Gestión de Personal”) junto a las horas usadas.
 - UI: todas las tarjetas del dashboard/planificación son colapsables (persisten estado en `localStorage`).
 - UI: se separa **Planificación** (bolsa + mesa + lista planificados) del **Dashboard (Carga)**.
+
+## v0.10 - 2026-05-10
+
+### Tipo de release
+Onboarding + compatibilidad con Safari iOS 12.x.
+
+### Cambios aplicados
+- Frontend: tour guiado con `react-joyride` para explicar pestañas y pantallas principales.
+- UI: botón **Tour** en cabecera para relanzar el tour bajo demanda.
+- Persistencia: el tour se marca como completado por navegador en `localStorage`.
+- Compatibilidad iPad: build dirigido a `ios_saf >= 12.0` (ajuste de `browserslist.production`) + carga de polyfills globales (`react-app-polyfill/stable`).
+
+### Notas
+- Si el iPad sigue sin cargar, revisar el error exacto desde Safari Web Inspector (suele indicar la API/sintaxis que falta).

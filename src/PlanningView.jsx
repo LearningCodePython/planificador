@@ -70,7 +70,8 @@ function PlanningView() {
   return (
     <div className="flex flex-col lg:flex-row gap-8">
       <div className="flex-1 space-y-8">
-        <CollapsibleCard storageKey="accepted_bag" title="Bolsa de Presupuestos Aceptados">
+        <div data-tour="planning-accepted-bag">
+          <CollapsibleCard storageKey="accepted_bag" title="Bolsa de Presupuestos Aceptados">
           <p className="text-sm text-gray-600 mb-4">
             Alta rápida sin planificación completa. Luego puedes pasarlos a la mesa de planificación.
           </p>
@@ -230,9 +231,11 @@ function PlanningView() {
               ))}
             </div>
           )}
-        </CollapsibleCard>
+          </CollapsibleCard>
+        </div>
 
-        <CollapsibleCard storageKey="planning_form" title="Mesa de Planificacion" headerClassName="mb-6 border-b pb-3 border-gray-400">
+        <div data-tour="planning-board">
+          <CollapsibleCard storageKey="planning_form" title="Mesa de Planificacion" headerClassName="mb-6 border-b pb-3 border-gray-400">
           <div className="space-y-4 mb-6">
             <div>
               <label htmlFor="budgetName" className="block text-sm font-medium text-gray-700">Nombre del Presupuesto</label>
@@ -420,7 +423,8 @@ function PlanningView() {
               )}
             </button>
           </div>
-        </CollapsibleCard>
+          </CollapsibleCard>
+        </div>
       </div>
 
       <div className="flex-1 space-y-8">
@@ -553,4 +557,3 @@ function PlanningView() {
 }
 
 export default PlanningView;
-
