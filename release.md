@@ -191,3 +191,15 @@ Onboarding + compatibilidad con Safari iOS 12.x.
 
 ### Notas
 - Si el iPad sigue sin cargar, revisar el error exacto desde Safari Web Inspector (suele indicar la API/sintaxis que falta).
+
+## v0.11 - 2026-05-24
+
+### Tipo de release
+Hotfix de compatibilidad: iOS 12 (Safari) en modo legacy.
+
+### Cambios aplicados
+- Frontend: acceso a `localStorage` protegido (helpers “safe”) para evitar errores cuando el storage está bloqueado por el navegador.
+- Build: `postbuild` añade un parche automático del bundle para evitar un caso ambiguo `?.<digit>` que en iOS 12 puede provocar `SyntaxError`.
+
+### Notas
+- No cambia la funcionalidad; solo mejora el arranque en dispositivos legacy.
