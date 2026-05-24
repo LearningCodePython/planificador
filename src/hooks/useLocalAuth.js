@@ -1,24 +1,42 @@
 import { useState, useEffect, useCallback } from 'react';
 
+function safeGetLocalStorage(key) {
+  try {
+    if (typeof window === 'undefined') return null;
+    return window.localStorage.getItem(key);
+  } catch (_e) {
+    return null;
+  }
+}
+
+function safeSetLocalStorage(key, value) {
+  try {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(key, value);
+  } catch (_e) {
+    // noop
+  }
+}
+
 export const useLocalAuth = () => {
   const [user, setUser] = useState(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
 
   useEffect(() => {
-    const savedEmail = localStorage.getItem('planificador_local_user_email') || 'local@planificador.local';
+    const savedEmail = safeGetLocalStorage('planificador_local_user_email') || 'local@planificador.local';
     setUser({ uid: 'local-user', email: savedEmail });
     setIsAuthReady(true);
   }, []);
 
   const signUp = useCallback(async (email) => {
     const safeEmail = email || 'local@planificador.local';
-    localStorage.setItem('planificador_local_user_email', safeEmail);
+    safeSetLocalStorage('planificador_local_user_email', safeEmail);
     setUser({ uid: 'local-user', email: safeEmail });
   }, []);
 
   const signIn = useCallback(async (email) => {
     const safeEmail = email || 'local@planificador.local';
-    localStorage.setItem('planificador_local_user_email', safeEmail);
+    safeSetLocalStorage('planificador_local_user_email', safeEmail);
     setUser({ uid: 'local-user', email: safeEmail });
   }, []);
 
@@ -35,4 +53,3 @@ export const useLocalAuth = () => {
     logOut,
   };
 };
-

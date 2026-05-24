@@ -5,9 +5,27 @@ const ThemeContext = createContext();
 
 export const useTheme = () => useContext(ThemeContext);
 
+function safeGetLocalStorage(key) {
+  try {
+    if (typeof window === 'undefined') return null;
+    return window.localStorage.getItem(key);
+  } catch (_e) {
+    return null;
+  }
+}
+
+function safeSetLocalStorage(key, value) {
+  try {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(key, value);
+  } catch (_e) {
+    // noop (Safari/iOS puede bloquear storage en ciertos modos)
+  }
+}
+
 export const ThemeProvider = ({ children }) => {
   const [theme, setTheme] = useState(() => {
-    const storedTheme = localStorage.getItem('theme');
+    const storedTheme = safeGetLocalStorage('theme');
     return storedTheme ? storedTheme : 'light';
   });
 
@@ -17,7 +35,7 @@ export const ThemeProvider = ({ children }) => {
     } else {
       document.documentElement.classList.remove('dark');
     }
-    localStorage.setItem('theme', theme);
+    safeSetLocalStorage('theme', theme);
   }, [theme]);
 
   const toggleTheme = () => {
