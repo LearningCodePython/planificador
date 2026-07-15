@@ -24,7 +24,7 @@ Estado actual: arquitectura desacoplada en **frontend + backend + SQLite** ejecu
 
 La aplicación se organiza en pestañas:
 - **Dashboard (Carga)**: visual de carga de trabajo y resúmenes.
-- **Planificación**: bolsa de aceptados, mesa de planificación y lista de presupuestos planificados.
+- **Planificación**: **mesa de planificación** (arriba), **bolsa de aceptados** (abajo) y **lista de presupuestos en planificación** (columna derecha).
 - **Ejecutados**: presupuestos archivados/terminados.
 - **Gestión de Personal**: mantenimiento de personal y capacidad.
 - **Usuarios** (solo `admin`): administración de usuarios/roles.
@@ -49,6 +49,7 @@ La aplicación se organiza en pestañas:
 - Subida de PDF del presupuesto (opcional).
 - Edición de presupuestos dentro de la bolsa.
 - Búsqueda por **número o cliente** dentro de la bolsa.
+- **Ordenamiento por fecha de aceptación** (ascendente/descendente/sin orden).
 - Movimiento de la bolsa a la mesa de planificación.
 - Devolución desde la mesa de planificación a la bolsa (conserva horas/desglose/personal/categoría y elimina fechas).
 
@@ -67,6 +68,7 @@ La aplicación se organiza en pestañas:
 - Ocupación mensual en gráfico.
 - Estimación de fecha de fin según capacidad.
 - Exportación de presupuestos a CSV.
+- **Ordenamiento por fecha de aceptación** en la lista de presupuestos planificados (ascendente/descendente/sin orden).
 
 ## Modelo de datos (resumen)
 

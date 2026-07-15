@@ -159,6 +159,13 @@ Endpoints admin relevantes (auth):
 - Adjuntos PDF: almacenados en volumen del backend (ruta contenedor: `/app/upload/pdfs`).
 - Compatibilidad iPad/Safari iOS 12.x: build dirigido a `ios_saf >= 12.0` + polyfills globales (`react-app-polyfill/stable`) para evitar roturas por sintaxis/APIs modernas.
 
+## Cambios recientes (v0.12 - 2026-07-15)
+- **Ordenación por fecha de aceptación** (3 estados: asc/desc/none) en:
+  - "Bolsa de Presupuestos Aceptados" (columna izquierda)
+  - "Lista de Presupuestos en Planificación" (columna derecha)
+- **Reordenación visual**: "Mesa de Planificación" ahora arriba, "Bolsa de Presupuestos Aceptados" abajo en columna izquierda.
+- Refactor limpio de `PlanningView.jsx`: eliminadas tarjetas duplicadas, extraído componente de toggle de ordenación.
+
 ## Notas de migración recientes
 - La tabla `accepted_budgets` se amplía automáticamente al arrancar el backend (ALTER TABLE) para incluir campos de planificación (horas/desglose/personal/categoría).
 - Se añadió el campo `client` en `accepted_budgets` (migración automática con `ALTER TABLE`).

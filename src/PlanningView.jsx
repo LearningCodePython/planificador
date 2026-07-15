@@ -39,22 +39,37 @@ function PlanningView() {
   const { personnel } = personnelHook;
 
   const [acceptedBudgetSearch, setAcceptedBudgetSearch] = useState('');
+  const [acceptedSortDir, setAcceptedSortDir] = useState(null);
+  const [budgetSortDir, setBudgetSortDir] = useState(null);
+
+  const sortByAcceptanceDate = (items, direction) => {
+    if (!direction) return items;
+    return [...items].sort((a, b) => {
+      const dateA = a.acceptanceDate ? new Date(a.acceptanceDate) : new Date(0);
+      const dateB = b.acceptanceDate ? new Date(b.acceptanceDate) : new Date(0);
+      return direction === 'asc' ? dateA - dateB : dateB - dateA;
+    });
+  };
 
   const filteredAcceptedBudgets = useMemo(() => {
     const query = acceptedBudgetSearch.trim().toLowerCase();
-    if (!query) return acceptedBudgets;
-    return acceptedBudgets.filter((item) => {
-      const budgetNumber = (item.budgetNumber || '').toLowerCase();
-      const client = (item.client || '').toLowerCase();
-      return budgetNumber.includes(query) || client.includes(query);
-    });
-  }, [acceptedBudgets, acceptedBudgetSearch]);
+    let result = acceptedBudgets;
+    if (query) {
+      result = acceptedBudgets.filter((item) => {
+        const budgetNumber = (item.budgetNumber || '').toLowerCase();
+        const client = (item.client || '').toLowerCase();
+        return budgetNumber.includes(query) || client.includes(query);
+      });
+    }
+    return sortByAcceptanceDate(result, acceptedSortDir);
+  }, [acceptedBudgets, acceptedBudgetSearch, acceptedSortDir]);
 
   const filteredBudgets = useMemo(() => {
-    return selectedCategory === 'Todas'
+    let result = selectedCategory === 'Todas'
       ? budgets
       : budgets.filter((b) => b.category === selectedCategory);
-  }, [budgets, selectedCategory]);
+    return sortByAcceptanceDate(result, budgetSortDir);
+  }, [budgets, selectedCategory, budgetSortDir]);
 
   const projectedFromForm = useMemo(() => {
     if (!budgetForm.startDate) return null;
@@ -67,175 +82,46 @@ function PlanningView() {
     return computeProjectedFinishDate(tempBudget, personnel);
   }, [budgetForm, personnel]);
 
+  const sortToggleButton = (direction, setDirection, color) => {
+    const isAsc = direction === 'asc';
+    const isDesc = direction === 'desc';
+    const nextDir = isAsc ? 'desc' : 'asc';
+    const bgColor = isAsc || isDesc ? `${color}-100` : 'white';
+    const borderColor = isAsc || isDesc ? `${color}-400` : 'gray-300';
+    const textColor = isAsc || isDesc ? `${color}-800` : 'gray-700';
+    const label = isAsc ? '↑ Fecha' : isDesc ? '↓ Fecha' : 'Fecha';
+    const title = isAsc ? 'Descendente' : isDesc ? 'Sin orden' : 'Ascendente';
+
+    return (
+      <>
+        <button
+          onClick={() => setDirection(nextDir)}
+          className={`px-3 py-1 text-sm rounded-md border transition ${bgColor} border-${borderColor} text-${textColor} ${!isAsc && !isDesc ? 'hover:bg-gray-50' : ''}`}
+          title={title}
+        >
+          {label}
+        </button>
+        {(isAsc || isDesc) && (
+          <button
+            onClick={() => setDirection(null)}
+            className="px-2 py-1 text-sm text-gray-500 hover:text-gray-700"
+            title="Limpiar orden"
+          >
+            ✕
+          </button>
+        )}
+      </>
+    );
+  };
+
   return (
     <div className="flex flex-col lg:flex-row gap-8">
       <div className="flex-1 space-y-8">
-        <div data-tour="planning-accepted-bag">
-          <CollapsibleCard storageKey="accepted_bag" title="Bolsa de Presupuestos Aceptados">
-          <p className="text-sm text-gray-600 mb-4">
-            Alta rápida sin planificación completa. Luego puedes pasarlos a la mesa de planificación.
-          </p>
-          <div className="space-y-4 mb-6">
-            <div>
-              <label htmlFor="acceptedBudgetName" className="block text-sm font-medium text-gray-700">Nombre</label>
-              <input
-                type="text"
-                id="acceptedBudgetName"
-                className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                value={acceptedBudgetForm.name}
-                onChange={(e) => updateAcceptedBudgetForm('name', e.target.value)}
-                placeholder="Ej. Reforma Nave Industrial"
-              />
-            </div>
-            <div>
-              <label htmlFor="acceptedBudgetNumber" className="block text-sm font-medium text-gray-700">Numero de presupuesto</label>
-              <input
-                type="text"
-                id="acceptedBudgetNumber"
-                className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                value={acceptedBudgetForm.budgetNumber}
-                onChange={(e) => updateAcceptedBudgetForm('budgetNumber', e.target.value)}
-                placeholder="Ej. P-2026-014"
-              />
-            </div>
-            <div>
-              <label htmlFor="acceptedBudgetClient" className="block text-sm font-medium text-gray-700">Cliente</label>
-              <input
-                type="text"
-                id="acceptedBudgetClient"
-                className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                value={acceptedBudgetForm.client || ''}
-                onChange={(e) => updateAcceptedBudgetForm('client', e.target.value)}
-                placeholder="Ej. ACME S.L."
-              />
-            </div>
-            <div>
-              <label htmlFor="acceptedBudgetTicket" className="block text-sm font-medium text-gray-700">#Ticket</label>
-              <input
-                type="text"
-                id="acceptedBudgetTicket"
-                className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                value={acceptedBudgetForm.ticketRef || ''}
-                onChange={(e) => updateAcceptedBudgetForm('ticketRef', e.target.value)}
-                placeholder="Ej. TCK-12345"
-              />
-            </div>
-            <div>
-              <label htmlFor="acceptedBudgetDate" className="block text-sm font-medium text-gray-700">Fecha de aceptacion</label>
-              <input
-                type="date"
-                id="acceptedBudgetDate"
-                className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                value={acceptedBudgetForm.acceptanceDate}
-                onChange={(e) => updateAcceptedBudgetForm('acceptanceDate', e.target.value)}
-              />
-            </div>
-            <div>
-              <label htmlFor="acceptedBudgetPdf" className="block text-sm font-medium text-gray-700">PDF del presupuesto (opcional)</label>
-              <input
-                type="file"
-                id="acceptedBudgetPdf"
-                accept="application/pdf,.pdf"
-                className="mt-1 block w-full text-sm"
-                onChange={(e) => setAcceptedBudgetPdfFile(e.target.files?.[0] || null)}
-              />
-              {acceptedBudgetPdfFile ? (
-                <div className="mt-1 text-xs text-gray-600">Seleccionado: {acceptedBudgetPdfFile.name}</div>
-              ) : acceptedBudgetForm.id && acceptedBudgetForm.pdfFilename ? (
-                <a
-                  className="mt-1 inline-block text-xs text-blue-700 underline"
-                  href={`/api/accepted-budgets/${acceptedBudgetForm.id}/pdf`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Ver PDF actual: {acceptedBudgetForm.pdfOriginalName || 'presupuesto.pdf'}
-                </a>
-              ) : null}
-            </div>
-            <button
-              onClick={saveAcceptedBudget}
-              className="w-full bg-emerald-600 text-white py-2 px-4 rounded-md hover:bg-emerald-700 transition duration-300 ease-in-out shadow-md"
-            >
-              {acceptedBudgetForm.id ? 'Actualizar presupuesto en bolsa' : 'Guardar en bolsa de aceptados'}
-            </button>
-            {acceptedBudgetForm.id && (
-              <button
-                onClick={resetAcceptedBudgetForm}
-                className="w-full bg-gray-300 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-400 transition duration-300 ease-in-out shadow-md"
-              >
-                Cancelar edición
-              </button>
-            )}
-          </div>
-          <div className="mb-4">
-            <label htmlFor="acceptedBudgetSearch" className="block text-sm font-medium text-gray-700">
-              Buscar por número o cliente
-            </label>
-            <input
-              id="acceptedBudgetSearch"
-              type="text"
-              value={acceptedBudgetSearch}
-              onChange={(e) => setAcceptedBudgetSearch(e.target.value)}
-              placeholder="Ej. 2026-001 o ACME"
-              className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          {filteredAcceptedBudgets.length === 0 ? (
-            <p className="text-gray-500">
-              {acceptedBudgets.length === 0 ? 'No hay presupuestos en la bolsa.' : 'No hay coincidencias con esa búsqueda.'}
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {filteredAcceptedBudgets.map((accepted) => (
-                <div key={accepted.id} className="bg-emerald-50 p-4 rounded-lg border border-emerald-200">
-                  <p className="text-base font-semibold text-emerald-800">{accepted.name || 'Sin nombre'}</p>
-                  <p className="text-sm text-gray-700">Numero: {accepted.budgetNumber || '-'}</p>
-                  <p className="text-sm text-gray-700">Cliente: {accepted.client || '-'}</p>
-                  <p className="text-sm text-gray-700">Aceptacion: {accepted.acceptanceDate || '-'}</p>
-                  {accepted.ticketRef ? (
-                    <p className="text-sm text-gray-700">#Ticket: {accepted.ticketRef}</p>
-                  ) : null}
-                  {accepted.pdfFilename ? (
-                    <a
-                      className="text-sm text-blue-700 underline"
-                      href={`/api/accepted-budgets/${accepted.id}/pdf`}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      PDF: {accepted.pdfOriginalName || 'presupuesto.pdf'}
-                    </a>
-                  ) : (
-                    <p className="text-sm text-gray-700">PDF: -</p>
-                  )}
-                  <div className="mt-3 flex flex-col sm:flex-row gap-2">
-                    <button
-                      onClick={() => editAcceptedBudget(accepted)}
-                      className="flex-1 bg-yellow-500 text-white py-1 px-3 rounded-md hover:bg-yellow-600 transition duration-300 ease-in-out text-sm shadow-sm"
-                    >
-                      Editar
-                    </button>
-                    <button
-                      onClick={() => moveAcceptedToPlanning(accepted.id)}
-                      className="flex-1 bg-indigo-600 text-white py-1 px-3 rounded-md hover:bg-indigo-700 transition duration-300 ease-in-out text-sm shadow-sm"
-                    >
-                      Pasar a mesa de planificacion
-                    </button>
-                    <button
-                      onClick={() => deleteAcceptedBudget(accepted.id)}
-                      className="flex-1 bg-red-500 text-white py-1 px-3 rounded-md hover:bg-red-600 transition duration-300 ease-in-out text-sm shadow-sm"
-                    >
-                      Eliminar
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-          </CollapsibleCard>
-        </div>
-
         <div data-tour="planning-board">
           <CollapsibleCard storageKey="planning_form" title="Mesa de Planificacion" headerClassName="mb-6 border-b pb-3 border-gray-400">
+          <p className="text-sm text-gray-600 mb-4">
+            Crea o edita presupuestos en la mesa de planificación.
+          </p>
           <div className="space-y-4 mb-6">
             <div>
               <label htmlFor="budgetName" className="block text-sm font-medium text-gray-700">Nombre del Presupuesto</label>
@@ -425,6 +311,174 @@ function PlanningView() {
           </div>
           </CollapsibleCard>
         </div>
+
+        <div data-tour="planning-accepted-bag">
+          <CollapsibleCard storageKey="accepted_bag" title="Bolsa de Presupuestos Aceptados">
+          <p className="text-sm text-gray-600 mb-4">
+            Alta rápida sin planificación completa. Luego puedes pasarlos a la mesa de planificación.
+          </p>
+          <div className="space-y-4 mb-6">
+            <div>
+              <label htmlFor="acceptedBudgetName" className="block text-sm font-medium text-gray-700">Nombre</label>
+              <input
+                type="text"
+                id="acceptedBudgetName"
+                className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                value={acceptedBudgetForm.name}
+                onChange={(e) => updateAcceptedBudgetForm('name', e.target.value)}
+                placeholder="Ej. Reforma Nave Industrial"
+              />
+            </div>
+            <div>
+              <label htmlFor="acceptedBudgetNumber" className="block text-sm font-medium text-gray-700">Numero de presupuesto</label>
+              <input
+                type="text"
+                id="acceptedBudgetNumber"
+                className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                value={acceptedBudgetForm.budgetNumber}
+                onChange={(e) => updateAcceptedBudgetForm('budgetNumber', e.target.value)}
+                placeholder="Ej. P-2026-014"
+              />
+            </div>
+            <div>
+              <label htmlFor="acceptedBudgetClient" className="block text-sm font-medium text-gray-700">Cliente</label>
+              <input
+                type="text"
+                id="acceptedBudgetClient"
+                className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                value={acceptedBudgetForm.client || ''}
+                onChange={(e) => updateAcceptedBudgetForm('client', e.target.value)}
+                placeholder="Ej. ACME S.L."
+              />
+            </div>
+            <div>
+              <label htmlFor="acceptedBudgetTicket" className="block text-sm font-medium text-gray-700">#Ticket</label>
+              <input
+                type="text"
+                id="acceptedBudgetTicket"
+                className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                value={acceptedBudgetForm.ticketRef || ''}
+                onChange={(e) => updateAcceptedBudgetForm('ticketRef', e.target.value)}
+                placeholder="Ej. TCK-12345"
+              />
+            </div>
+            <div>
+              <label htmlFor="acceptedBudgetDate" className="block text-sm font-medium text-gray-700">Fecha de aceptacion</label>
+              <input
+                type="date"
+                id="acceptedBudgetDate"
+                className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                value={acceptedBudgetForm.acceptanceDate}
+                onChange={(e) => updateAcceptedBudgetForm('acceptanceDate', e.target.value)}
+              />
+            </div>
+            <div>
+              <label htmlFor="acceptedBudgetPdf" className="block text-sm font-medium text-gray-700">PDF del presupuesto (opcional)</label>
+              <input
+                type="file"
+                id="acceptedBudgetPdf"
+                accept="application/pdf,.pdf"
+                className="mt-1 block w-full text-sm"
+                onChange={(e) => setAcceptedBudgetPdfFile(e.target.files?.[0] || null)}
+              />
+              {acceptedBudgetPdfFile ? (
+                <div className="mt-1 text-xs text-gray-600">Seleccionado: {acceptedBudgetPdfFile.name}</div>
+              ) : acceptedBudgetForm.id && acceptedBudgetForm.pdfFilename ? (
+                <a
+                  className="mt-1 inline-block text-xs text-blue-700 underline"
+                  href={`/api/accepted-budgets/${acceptedBudgetForm.id}/pdf`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Ver PDF actual: {acceptedBudgetForm.pdfOriginalName || 'presupuesto.pdf'}
+                </a>
+              ) : null}
+            </div>
+            <button
+              onClick={saveAcceptedBudget}
+              className="w-full bg-emerald-600 text-white py-2 px-4 rounded-md hover:bg-emerald-700 transition duration-300 ease-in-out shadow-md"
+            >
+              {acceptedBudgetForm.id ? 'Actualizar presupuesto en bolsa' : 'Guardar en bolsa de aceptados'}
+            </button>
+            {acceptedBudgetForm.id && (
+              <button
+                onClick={resetAcceptedBudgetForm}
+                className="w-full bg-gray-300 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-400 transition duration-300 ease-in-out shadow-md"
+              >
+                Cancelar edición
+              </button>
+            )}
+          </div>
+          <div className="mb-4">
+            <label htmlFor="acceptedBudgetSearch" className="block text-sm font-medium text-gray-700">
+              Buscar por número o cliente
+            </label>
+            <input
+              id="acceptedBudgetSearch"
+              type="text"
+              value={acceptedBudgetSearch}
+              onChange={(e) => setAcceptedBudgetSearch(e.target.value)}
+              placeholder="Ej. 2026-001 o ACME"
+              className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div className="mb-4 flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700">Ordenar por fecha aceptación:</label>
+            {sortToggleButton(acceptedSortDir, setAcceptedSortDir, 'emerald')}
+          </div>
+          {filteredAcceptedBudgets.length === 0 ? (
+            <p className="text-gray-500">
+              {acceptedBudgets.length === 0 ? 'No hay presupuestos en la bolsa.' : 'No hay coincidencias con esa búsqueda.'}
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {filteredAcceptedBudgets.map((accepted) => (
+                <div key={accepted.id} className="bg-emerald-50 p-4 rounded-lg border border-emerald-200">
+                  <p className="text-base font-semibold text-emerald-800">{accepted.name || 'Sin nombre'}</p>
+                  <p className="text-sm text-gray-700">Numero: {accepted.budgetNumber || '-'}</p>
+                  <p className="text-sm text-gray-700">Cliente: {accepted.client || '-'}</p>
+                  <p className="text-sm text-gray-700">Aceptacion: {accepted.acceptanceDate || '-'}</p>
+                  {accepted.ticketRef ? (
+                    <p className="text-sm text-gray-700">#Ticket: {accepted.ticketRef}</p>
+                  ) : null}
+                  {accepted.pdfFilename ? (
+                    <a
+                      className="text-sm text-blue-700 underline"
+                      href={`/api/accepted-budgets/${accepted.id}/pdf`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      PDF: {accepted.pdfOriginalName || 'presupuesto.pdf'}
+                    </a>
+                  ) : (
+                    <p className="text-sm text-gray-700">PDF: -</p>
+                  )}
+                  <div className="mt-3 flex flex-col sm:flex-row gap-2">
+                    <button
+                      onClick={() => editAcceptedBudget(accepted)}
+                      className="flex-1 bg-yellow-500 text-white py-1 px-3 rounded-md hover:bg-yellow-600 transition duration-300 ease-in-out text-sm shadow-sm"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      onClick={() => moveAcceptedToPlanning(accepted.id)}
+                      className="flex-1 bg-indigo-600 text-white py-1 px-3 rounded-md hover:bg-indigo-700 transition duration-300 ease-in-out text-sm shadow-sm"
+                    >
+                      Pasar a mesa de planificacion
+                    </button>
+                    <button
+                      onClick={() => deleteAcceptedBudget(accepted.id)}
+                      className="flex-1 bg-red-500 text-white py-1 px-3 rounded-md hover:bg-red-600 transition duration-300 ease-in-out text-sm shadow-sm"
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          </CollapsibleCard>
+        </div>
       </div>
 
       <div className="flex-1 space-y-8">
@@ -440,21 +494,27 @@ function PlanningView() {
           >
             📤 Exportar Presupuestos a CSV
           </button>
-          <div className="mb-4">
-            <label htmlFor="categoryFilter" className="block text-sm font-medium text-gray-700 mb-1">
-              Filtrar por categoría:
-            </label>
-            <select
-              id="categoryFilter"
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full sm:w-60 p-2 border border-gray-300 rounded-md shadow-sm text-sm"
-            >
-              <option value="Todas">Todas</option>
-              {[...new Set(budgets.map((b) => b.category).filter(Boolean))].map((cat, idx) => (
-                <option key={idx} value={cat}>{cat}</option>
-              ))}
-            </select>
+          <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex-1">
+              <label htmlFor="categoryFilter" className="block text-sm font-medium text-gray-700 mb-1">
+                Filtrar por categoría:
+              </label>
+              <select
+                id="categoryFilter"
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="w-full sm:w-60 p-2 border border-gray-300 rounded-md shadow-sm text-sm"
+              >
+                <option value="Todas">Todas</option>
+                {[...new Set(budgets.map((b) => b.category).filter(Boolean))].map((cat, idx) => (
+                  <option key={idx} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700">Ordenar por fecha aceptación:</label>
+              {sortToggleButton(budgetSortDir, setBudgetSortDir, 'blue')}
+            </div>
           </div>
           {filteredBudgets.length === 0 ? (
             <p className="text-gray-500">No hay presupuestos añadidos aún.</p>

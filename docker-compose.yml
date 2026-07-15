@@ -1,46 +1,25 @@
 services:
   planificador-api:
-    container_name: planificador-api
     build:
       context: ./backend
       dockerfile: Dockerfile
     restart: unless-stopped
+
     volumes:
       - /var/lib/contel-planificador/data:/app/data
       - /var/lib/contel-planificador/upload:/app/upload
-    networks:
-      - traefik_default
+
     expose:
       - "3001"
 
   planificador-web:
-    container_name: planificador
-    restart: unless-stopped
-    networks:
-      - traefik_default
     build:
       context: .
       dockerfile: Dockerfile
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.planificador.rule=Host(`planificador.domdoklab.me`)"
-      - "traefik.http.routers.planificador.entrypoints=websecure"
-      - "traefik.http.routers.planificador.tls=true"
-      - "traefik.http.routers.planificador.tls.certresolver=letsencrypt"
-      - "traefik.http.services.planificador.loadbalancer.server.port=80"
+    restart: unless-stopped
 
-      # --- 1) Middleware de autenticación ---
-      ##- "traefik.http.middlewares.pocketid-auth.forwardauth.address=http://pocketid:3000/validate"
-      ##- "traefik.http.middlewares.pocketid-auth.forwardauth.trustForwardHeader=true"
+    expose:
+      - "80"
 
-      # --- 2) Middleware de redirección ---
-      # - "traefik.http.middlewares.auth-redirect.redirectregex.regex=^https?://demo\\.domdoklab\\.me$"
-      # - "traefik.http.middlewares.auth-redirect.redirectregex.replacement=https://auth.domdoklab.me/login"
-      # - "traefik.http.middlewares.auth-redirect.redirectregex.permanent=true"
-
-      # --- 3) Aplicar solo el middleware de autenticación ---
-      # - "traefik.http.routers.planificador.middlewares=pocketid-auth"
-
-networks:
-  traefik_default:
-    external: true
+    depends_on:
+      - planificador-api

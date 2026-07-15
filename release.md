@@ -1,6 +1,27 @@
 # Release Notes
 
-## v0.1 - 2026-04-22
+## v0.12 - 2026-07-15
+
+### Tipo de release
+Mejora de UX en Planificación: ordenación por fecha y reordenación visual.
+
+### Cambios aplicados
+- **Ordenación por fecha de aceptación** en dos secciones:
+  - "Bolsa de Presupuestos Aceptados" (columna izquierda, abajo)
+  - "Lista de Presupuestos en Planificación" (columna derecha)
+  - Control de 3 estados: ascendente (↑), descendente (↓), sin orden (Fecha)
+- **Reordenación visual en Planificación**: la tarjeta "Mesa de Planificación" ahora aparece **arriba** y "Bolsa de Presupuestos Aceptados" **abajo** en la columna izquierda.
+- Refactor completo de `PlanningView.jsx` para limpiar duplicados y código mezclado.
+
+### Impacto funcional
+- Mejor descubrimiento y organización de presupuestos por fecha.
+- Flujo visual más lógico: primero crear/editar en mesa, luego ver/gestionar la bolsa.
+
+### Pendientes
+- Tests automatizados frontend (actualmente no usados).
+- Lint/typecheck no configurado (usa react-scripts default).
+
+## v0.11 - 2026-05-24
 
 ### Tipo de release
 Baseline funcional documentada tras auditoría de README + código.

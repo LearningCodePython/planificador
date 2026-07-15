@@ -31,6 +31,7 @@ yarn-error.log*
 *.sublime-project
 *.sublime-workspace
 *.log
+agents.md
 
 # Elementos docker no vigilados
 docker-compose.*
