@@ -288,6 +288,17 @@ function PlanningView() {
                 <option value="Mantenimiento">Mantenimiento</option>
               </select>
             </div>
+            <div>
+              <label htmlFor="budgetNotes" className="block text-sm font-medium text-gray-700">Anotaciones / Notas</label>
+              <textarea
+                id="budgetNotes"
+                rows="3"
+                className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                value={budgetForm.notes || ''}
+                onChange={(e) => updateBudgetForm('notes', e.target.value)}
+                placeholder="Aclaraciones, recordatorios, observaciones sobre el presupuesto..."
+              />
+            </div>
             <button
               onClick={saveBudget}
               className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition duration-300 ease-in-out shadow-md flex items-center justify-center gap-2"
@@ -562,6 +573,12 @@ function PlanningView() {
                         </span>
                       ))}
                     </div>
+                    {budget.notes && (
+                      <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                        <span className="font-medium text-yellow-800 text-sm">📝 Notas:</span>
+                        <p className="text-yellow-700 text-sm mt-1 whitespace-pre-wrap">{budget.notes}</p>
+                      </div>
+                    )}
                     <div className="mt-4 flex flex-col sm:flex-row gap-2">
                       <button
                         onClick={() => editBudget(budget)}

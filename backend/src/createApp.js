@@ -14,6 +14,7 @@ function parseBudgetRow(row) {
     laborBreakdown: JSON.parse(row.laborBreakdown || '[]'),
     assignedPersonnel: JSON.parse(row.assignedPersonnel || '[]'),
     fromAcceptedBag: Boolean(row.fromAcceptedBag),
+    notes: row.notes || '',
   };
 }
 
@@ -24,6 +25,7 @@ function parseAcceptedRow(row) {
     totalHours: Number(row.totalHours || 0),
     laborBreakdown: JSON.parse(row.laborBreakdown || '[]'),
     assignedPersonnel: JSON.parse(row.assignedPersonnel || '[]'),
+    notes: row.notes || '',
   };
 }
 
@@ -125,15 +127,15 @@ async function createApp(options = {}) {
     }
   });
 
-  app.post('/api/budgets', auth.requirePermission('budgets:write'), async (req, res) => {
+app.post('/api/budgets', auth.requirePermission('budgets:write'), async (req, res) => {
     try {
       const payload = req.body || {};
       const result = await run(
         `INSERT INTO budgets (
           name, budgetNumber, acceptanceDate, ticketRef, pdfFilename, pdfOriginalName, totalHours, laborBreakdown,
-          startDate, endDate, status, category, assignedPersonnel, fromAcceptedBag,
+          startDate, endDate, status, category, assignedPersonnel, fromAcceptedBag, notes,
           updatedAt
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
         [
           payload.name || '',
           payload.budgetNumber || '',
@@ -149,6 +151,7 @@ async function createApp(options = {}) {
           payload.category || '',
           JSON.stringify(payload.assignedPersonnel || []),
           payload.fromAcceptedBag ? 1 : 0,
+          payload.notes || '',
         ]
       );
       const created = await all('SELECT * FROM budgets WHERE id = ?', [result.id]);
@@ -217,6 +220,7 @@ async function createApp(options = {}) {
           category = ?,
           assignedPersonnel = ?,
           fromAcceptedBag = ?,
+          notes = ?,
           updatedAt = CURRENT_TIMESTAMP
         WHERE id = ?`,
         [
@@ -232,6 +236,7 @@ async function createApp(options = {}) {
           payload.category || '',
           JSON.stringify(payload.assignedPersonnel || []),
           payload.fromAcceptedBag ? 1 : 0,
+          payload.notes || '',
           Number(req.params.id),
         ]
       );
@@ -335,9 +340,9 @@ async function createApp(options = {}) {
         `INSERT INTO accepted_budgets (
           name, client, budgetNumber, acceptanceDate, status,
           ticketRef, pdfFilename, pdfOriginalName,
-          totalHours, laborBreakdown, category, assignedPersonnel,
+          totalHours, laborBreakdown, category, assignedPersonnel, notes,
           updatedAt
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
         [
           payload.name || '',
           payload.client || '',
@@ -351,6 +356,7 @@ async function createApp(options = {}) {
           JSON.stringify(payload.laborBreakdown || []),
           payload.category || '',
           JSON.stringify(payload.assignedPersonnel || []),
+          payload.notes || '',
         ]
       );
       const created = await all('SELECT * FROM accepted_budgets WHERE id = ?', [result.id]);
@@ -375,6 +381,7 @@ async function createApp(options = {}) {
           laborBreakdown = ?,
           category = ?,
           assignedPersonnel = ?,
+          notes = ?,
           updatedAt = CURRENT_TIMESTAMP
         WHERE id = ?`,
         [
@@ -388,6 +395,7 @@ async function createApp(options = {}) {
           JSON.stringify(payload.laborBreakdown || []),
           payload.category || '',
           JSON.stringify(payload.assignedPersonnel || []),
+          payload.notes || '',
           Number(req.params.id),
         ]
       );

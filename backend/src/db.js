@@ -44,7 +44,7 @@ function openDb(dbPath) {
 }
 
 async function initDb({ run, all }) {
-  await run(`
+await run(`
     CREATE TABLE IF NOT EXISTS budgets (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
@@ -61,6 +61,7 @@ async function initDb({ run, all }) {
       category TEXT,
       assignedPersonnel TEXT DEFAULT '[]',
       fromAcceptedBag INTEGER DEFAULT 0,
+      notes TEXT DEFAULT '',
       createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
       updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
     )
@@ -72,6 +73,8 @@ async function initDb({ run, all }) {
   if (!budgetColNames.has('ticketRef')) await run(`ALTER TABLE budgets ADD COLUMN ticketRef TEXT`);
   if (!budgetColNames.has('pdfFilename')) await run(`ALTER TABLE budgets ADD COLUMN pdfFilename TEXT`);
   if (!budgetColNames.has('pdfOriginalName')) await run(`ALTER TABLE budgets ADD COLUMN pdfOriginalName TEXT`);
+  if (!budgetColNames.has('notes')) await run(`ALTER TABLE budgets ADD COLUMN notes TEXT DEFAULT ''`);
+  if (!budgetColNames.has('notes')) await run(`ALTER TABLE budgets ADD COLUMN notes TEXT`);
 
   await run(`
     CREATE TABLE IF NOT EXISTS executed_budgets (
@@ -124,6 +127,7 @@ async function initDb({ run, all }) {
       laborBreakdown TEXT DEFAULT '[]',
       category TEXT,
       assignedPersonnel TEXT DEFAULT '[]',
+      notes TEXT,
       createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
       updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
     )
@@ -140,6 +144,7 @@ async function initDb({ run, all }) {
   if (!acceptedColNames.has('laborBreakdown')) await run(`ALTER TABLE accepted_budgets ADD COLUMN laborBreakdown TEXT DEFAULT '[]'`);
   if (!acceptedColNames.has('category')) await run(`ALTER TABLE accepted_budgets ADD COLUMN category TEXT`);
   if (!acceptedColNames.has('assignedPersonnel')) await run(`ALTER TABLE accepted_budgets ADD COLUMN assignedPersonnel TEXT DEFAULT '[]'`);
+  if (!acceptedColNames.has('notes')) await run(`ALTER TABLE accepted_budgets ADD COLUMN notes TEXT`);
 
   await run(`
     CREATE TABLE IF NOT EXISTS users (

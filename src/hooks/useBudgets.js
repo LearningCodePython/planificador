@@ -92,6 +92,7 @@ export const useBudgets = () => {
     status: 'Accepted',
     category: '',
     assignedPersonnel: [],
+    notes: '',
   });
 
   const loadBudgets = useCallback(async () => {
@@ -181,6 +182,7 @@ export const useBudgets = () => {
       status: 'Accepted',
       category: '',
       assignedPersonnel: [],
+      notes: '',
     });
   }, []);
 
@@ -198,6 +200,7 @@ export const useBudgets = () => {
       status: budget.status || 'Accepted',
       category: budget.category || '',
       assignedPersonnel: budget.assignedPersonnel || [],
+      notes: budget.notes || '',
     });
   }, []);
 
@@ -228,6 +231,7 @@ export const useBudgets = () => {
       status: budget.status || 'Accepted',
       category: budget.category || '',
       assignedPersonnel: budget.assignedPersonnel || [],
+      notes: budget.notes || '',
     });
   }, []);
 
@@ -262,6 +266,7 @@ export const useBudgets = () => {
       category: budgetForm.category,
       assignedPersonnel: budgetForm.assignedPersonnel,
       fromAcceptedBag: Boolean(budgetForm.fromAcceptedBag),
+      notes: budgetForm.notes || '',
     };
 
     try {
@@ -383,6 +388,7 @@ export const useBudgets = () => {
           category: selected.category || '',
           assignedPersonnel: selected.assignedPersonnel || [],
           fromAcceptedBag: true,
+          notes: selected.notes || '',
         }),
       });
       await apiFetch(`/accepted-budgets/${acceptedBudgetId}`, { method: 'DELETE' });
@@ -459,6 +465,7 @@ export const useBudgets = () => {
           laborBreakdown: selected.laborBreakdown || [],
           category: selected.category || '',
           assignedPersonnel: selected.assignedPersonnel || [],
+          notes: selected.notes || '',
         }),
       });
       await apiFetch(`/budgets/${budgetId}`, { method: 'DELETE' });
