@@ -159,3 +159,8 @@ planificador/
 - Sorting by acceptance date in "Bolsa de Presupuestos Aceptados" and "Lista de Presupuestos en Planificación" (3-state toggle: asc/desc/none)
 - Reordered PlanningView left column: "Mesa de Planificación" now above "Bolsa de Presupuestos Aceptados"
 - Clean rewrite of `PlanningView.jsx` (removed duplicate cards, extracted sort toggle component)
+
+## Documentacion
+- Al recivir la orden de "acutalizar la documentación" debes añadir las mejoras en los ficheros, release.md, context.md y README.md
+
+

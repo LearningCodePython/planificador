@@ -1,5 +1,23 @@
 # Release Notes
 
+## v0.13 - 2026-07-19
+
+### Tipo de release
+Nueva funcionalidad: anotaciones/notas en presupuestos de la Mesa de Planificación.
+
+### Cambios aplicados
+- **Campo `notes` en tabla `budgets`** (SQLite) con migración automática al arrancar backend (`ALTER TABLE`).
+- **Formulario "Mesa de Planificación"**: textarea para anotaciones libres (aclaraciones, recordatorios, observaciones).
+- **Listado "Presupuestos en Planificación"**: muestra notas en tarjeta amarilla con icono 📝 (render condicional).
+- **Copiado de notas** al usar presupuesto como plantilla ("USAR COMO BASE").
+- **Migración de notas** al mover de "Bolsa de Aceptados" → "Mesa de Planificación" (`moveAcceptedToPlanning`).
+- **Roles**: `editor`/`admin` crean/editan; `viewer` solo lectura.
+- **Backend**: `parseBudgetRow`, `POST /api/budgets`, `PUT /api/budgets/:id` incluyen `notes`.
+- **Frontend**: `useBudgets` hook incluye `notes` en `budgetForm`, `editBudget`, `saveBudget`, `useBudgetAsTemplate`, `moveAcceptedToPlanning`.
+- **UI**: `PlanningView.jsx` formulario (textarea L292-300) y listado (render L576-581).
+
+---
+
 ## v0.12 - 2026-07-15
 
 ### Tipo de release

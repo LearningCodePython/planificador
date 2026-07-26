@@ -110,6 +110,7 @@ Endpoints admin relevantes (auth):
 - `category`
 - `assignedPersonnel: string[]`
 - `fromAcceptedBag`
+- `notes` (anotaciones libres del presupuesto)
 
 ### Ejecutados (`executed_budgets`)
 - `id`
@@ -158,6 +159,15 @@ Endpoints admin relevantes (auth):
 - La API está protegida por autenticación backend real (sesión) y autorización por roles/permisos.
 - Adjuntos PDF: almacenados en volumen del backend (ruta contenedor: `/app/upload/pdfs`).
 - Compatibilidad iPad/Safari iOS 12.x: build dirigido a `ios_saf >= 12.0` + polyfills globales (`react-app-polyfill/stable`) para evitar roturas por sintaxis/APIs modernas.
+
+## Cambios recientes (v0.13 - 2026-07-19)
+- **Anotaciones / notas en presupuestos** (Mesa de Planificación):
+  - Campo `notes` en tabla `budgets` con migración automática.
+  - Textarea en formulario "Mesa de Planificación".
+  - Visualización en tarjetas "Lista de Presupuestos en Planificación" (fondo amarillo).
+  - Se copian al usar presupuesto como plantilla.
+  - Se migran al mover de "Bolsa Aceptados" → "Mesa Planificación".
+  - Roles: editor/admin escriben, viewer solo lectura.
 
 ## Cambios recientes (v0.12 - 2026-07-15)
 - **Ordenación por fecha de aceptación** (3 estados: asc/desc/none) en:

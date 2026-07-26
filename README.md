@@ -33,10 +33,11 @@ La aplicación se organiza en pestañas:
 ### Presupuestos
 - Crear, editar y eliminar presupuestos.
 - Campo `#Ticket` asociado (trazabilidad externa).
+- **Anotaciones / notas** libres por presupuesto (aclaraciones, recordatorios, observaciones).
 - Desglose por tipo de mano de obra.
 - Estados, categoría y fechas de planificación.
 - Asignación de personal.
-- Duplicado mediante plantilla.
+- Duplicado mediante plantilla (copia notas).
 - Finalización: mover presupuestos completados a **Ejecutados** conservando horas/personal/fechas.
 
 ### Bolsa de Presupuestos Aceptados
@@ -78,6 +79,7 @@ La aplicación se organiza en pestañas:
 - `totalHours`, `laborBreakdown`
 - `startDate`, `endDate`, `status`, `category`
 - `assignedPersonnel`, `fromAcceptedBag`
+- `notes` (anotaciones libres del presupuesto)
 
 ### `executed_budgets`
 - `id`, `sourceBudgetId`, `name`, `budgetNumber`, `acceptanceDate`, `ticketRef`
