@@ -33,6 +33,7 @@ La aplicación se organiza en pestañas:
 ### Presupuestos
 - Crear, editar y eliminar presupuestos.
 - Campo `#Ticket` asociado (trazabilidad externa).
+- **Cliente** asociado al presupuesto.
 - **Anotaciones / notas** libres por presupuesto (aclaraciones, recordatorios, observaciones).
 - Desglose por tipo de mano de obra.
 - Estados, categoría y fechas de planificación.
@@ -60,6 +61,7 @@ La aplicación se organiza en pestañas:
 
 ### Personal
 - Alta, edición y baja de personal.
+- **Exportación a CSV** incluye: Nombre, #Ticket, Cliente, Categoría, Estado, Inicio, Fin, Horas Totales, Personal Asignado.
 - Configuración de horas/día y días/semana.
 - Visualización de asignaciones por persona.
 
@@ -80,6 +82,7 @@ La aplicación se organiza en pestañas:
 - `startDate`, `endDate`, `status`, `category`
 - `assignedPersonnel`, `fromAcceptedBag`
 - `notes` (anotaciones libres del presupuesto)
+- `client` (nombre del cliente)
 
 ### `executed_budgets`
 - `id`, `sourceBudgetId`, `name`, `budgetNumber`, `acceptanceDate`, `ticketRef`
@@ -88,6 +91,7 @@ La aplicación se organiza en pestañas:
 - `startDate`, `endDate`, `status`, `category`
 - `assignedPersonnel`, `fromAcceptedBag`
 - `executedAt`
+- `client` (nombre del cliente)
 
 ### `personnel`
 - `id`, `name`, `laborType`, `hoursPerDay`, `daysPerWeek`

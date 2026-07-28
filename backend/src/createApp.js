@@ -133,9 +133,9 @@ app.post('/api/budgets', auth.requirePermission('budgets:write'), async (req, re
       const result = await run(
         `INSERT INTO budgets (
           name, budgetNumber, acceptanceDate, ticketRef, pdfFilename, pdfOriginalName, totalHours, laborBreakdown,
-          startDate, endDate, status, category, assignedPersonnel, fromAcceptedBag, notes,
+          startDate, endDate, status, category, assignedPersonnel, fromAcceptedBag, notes, client,
           updatedAt
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
         [
           payload.name || '',
           payload.budgetNumber || '',
@@ -152,6 +152,7 @@ app.post('/api/budgets', auth.requirePermission('budgets:write'), async (req, re
           JSON.stringify(payload.assignedPersonnel || []),
           payload.fromAcceptedBag ? 1 : 0,
           payload.notes || '',
+          payload.client || '',
         ]
       );
       const created = await all('SELECT * FROM budgets WHERE id = ?', [result.id]);
@@ -172,9 +173,9 @@ app.post('/api/budgets', auth.requirePermission('budgets:write'), async (req, re
         `INSERT INTO executed_budgets (
           sourceBudgetId,
           name, budgetNumber, acceptanceDate, ticketRef, pdfFilename, pdfOriginalName, totalHours, laborBreakdown,
-          startDate, endDate, status, category, assignedPersonnel, fromAcceptedBag,
+          startDate, endDate, status, category, assignedPersonnel, fromAcceptedBag, client,
           createdAt, updatedAt
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           budgetId,
           payload.name || '',
@@ -191,6 +192,7 @@ app.post('/api/budgets', auth.requirePermission('budgets:write'), async (req, re
           payload.category || '',
           JSON.stringify(payload.assignedPersonnel || []),
           payload.fromAcceptedBag ? 1 : 0,
+          payload.client || '',
           existing.createdAt || null,
           existing.updatedAt || null,
         ]
@@ -221,6 +223,7 @@ app.post('/api/budgets', auth.requirePermission('budgets:write'), async (req, re
           assignedPersonnel = ?,
           fromAcceptedBag = ?,
           notes = ?,
+          client = ?,
           updatedAt = CURRENT_TIMESTAMP
         WHERE id = ?`,
         [
@@ -237,6 +240,7 @@ app.post('/api/budgets', auth.requirePermission('budgets:write'), async (req, re
           JSON.stringify(payload.assignedPersonnel || []),
           payload.fromAcceptedBag ? 1 : 0,
           payload.notes || '',
+          payload.client || '',
           Number(req.params.id),
         ]
       );

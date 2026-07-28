@@ -93,6 +93,7 @@ export const useBudgets = () => {
     category: '',
     assignedPersonnel: [],
     notes: '',
+    client: '',
   });
 
   const loadBudgets = useCallback(async () => {
@@ -183,6 +184,7 @@ export const useBudgets = () => {
       category: '',
       assignedPersonnel: [],
       notes: '',
+      client: '',
     });
   }, []);
 
@@ -201,6 +203,7 @@ export const useBudgets = () => {
       category: budget.category || '',
       assignedPersonnel: budget.assignedPersonnel || [],
       notes: budget.notes || '',
+      client: budget.client || '',
     });
   }, []);
 
@@ -232,6 +235,7 @@ export const useBudgets = () => {
       category: budget.category || '',
       assignedPersonnel: budget.assignedPersonnel || [],
       notes: budget.notes || '',
+      client: budget.client || '',
     });
   }, []);
 
@@ -267,6 +271,7 @@ export const useBudgets = () => {
       assignedPersonnel: budgetForm.assignedPersonnel,
       fromAcceptedBag: Boolean(budgetForm.fromAcceptedBag),
       notes: budgetForm.notes || '',
+      client: budgetForm.client || '',
     };
 
     try {
@@ -389,6 +394,7 @@ export const useBudgets = () => {
           assignedPersonnel: selected.assignedPersonnel || [],
           fromAcceptedBag: true,
           notes: selected.notes || '',
+          client: selected.client || '',
         }),
       });
       await apiFetch(`/accepted-budgets/${acceptedBudgetId}`, { method: 'DELETE' });
@@ -466,6 +472,7 @@ export const useBudgets = () => {
           category: selected.category || '',
           assignedPersonnel: selected.assignedPersonnel || [],
           notes: selected.notes || '',
+          client: selected.client || '',
         }),
       });
       await apiFetch(`/budgets/${budgetId}`, { method: 'DELETE' });
@@ -569,7 +576,7 @@ export const useBudgets = () => {
       return;
     }
 
-    const header = ['Nombre', '#Ticket', 'Categoría', 'Estado', 'Inicio', 'Fin', 'Horas Totales', 'Personal Asignado'];
+    const header = ['Nombre', '#Ticket', 'Cliente', 'Categoría', 'Estado', 'Inicio', 'Fin', 'Horas Totales', 'Personal Asignado'];
 
     const rows = budgets.map((budget) => {
       const assigned = personnel
@@ -580,6 +587,7 @@ export const useBudgets = () => {
       return [
         budget.name,
         budget.ticketRef || '',
+        budget.client || '',
         budget.category || '',
         budget.status,
         budget.startDate,

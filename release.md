@@ -1,5 +1,26 @@
 # Release Notes
 
+## v0.14 - 2026-07-28
+
+### Tipo de release
+Mejora funcional: campo Cliente en "Lista de Presupuestos en Planificación".
+
+### Cambios aplicados
+- **Campo `client` en tabla `budgets`** (SQLite) con migración automática al arrancar backend (`ALTER TABLE`).
+- **Campo `client` en tabla `executed_budgets`** (SQLite) con migración automática.
+- **Formulario "Mesa de Planificación"**: nuevo input "Cliente" (entre #Ticket y Horas Totales Estimadas).
+- **Listado "Presupuestos en Planificación"**: muestra cliente en cada tarjeta (debajo del número de presupuesto).
+- **Exportación CSV**: nueva columna "Cliente".
+- **Flujo Bolsa Aceptados → Mesa Planificación** (`moveAcceptedToPlanning`): propaga el cliente.
+- **Flujo Mesa Planificación → Bolsa Aceptados** (`moveBudgetToAcceptedBag`): conserva el cliente.
+- **Plantilla ("USAR COMO BASE")**: copia el cliente al nuevo presupuesto.
+- **Ejecución** (`/api/budgets/:id/execute`): migra el cliente a `executed_budgets`.
+- **Backend**: `parseBudgetRow`, `POST /api/budgets`, `PUT /api/budgets/:id`, `POST /api/budgets/:id/execute` incluyen `client`.
+- **Frontend**: `useBudgets` hook incluye `client` en `budgetForm`, `editBudget`, `saveBudget`, `useBudgetAsTemplate`, `moveAcceptedToPlanning`, `moveBudgetToAcceptedBag`, `exportToCSV`.
+- **UI**: `PlanningView.jsx` formulario (input L148-157) y listado (render L551).
+
+---
+
 ## v0.13 - 2026-07-19
 
 ### Tipo de release

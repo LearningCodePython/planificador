@@ -146,6 +146,17 @@ function PlanningView() {
               />
             </div>
             <div>
+              <label htmlFor="budgetClient" className="block text-sm font-medium text-gray-700">Cliente</label>
+              <input
+                type="text"
+                id="budgetClient"
+                className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                value={budgetForm.client || ''}
+                onChange={(e) => updateBudgetForm('client', e.target.value)}
+                placeholder="Ej. ACME S.L."
+              />
+            </div>
+            <div>
               <label htmlFor="budgetTotalHours" className="block text-sm font-medium text-gray-700">Horas Totales Estimadas</label>
               <input
                 type="number"
@@ -537,6 +548,7 @@ function PlanningView() {
                   <div key={budget.id} className="bg-blue-50 p-4 rounded-lg shadow-sm border border-blue-100">
                     <p className="text-lg font-semibold text-blue-800">{budget.name} ({budget.status})</p>
                     <p className="text-sm text-gray-600">Numero: {budget.budgetNumber || '-'}</p>
+                    <p className="text-sm text-gray-600">Cliente: {budget.client || '-'}</p>
                     <p className="text-sm text-gray-600">Fecha de aceptacion: {budget.acceptanceDate || '-'}</p>
                     {budget.ticketRef ? (
                       <p className="text-sm text-gray-600">#Ticket: {budget.ticketRef}</p>

@@ -62,6 +62,7 @@ await run(`
       assignedPersonnel TEXT DEFAULT '[]',
       fromAcceptedBag INTEGER DEFAULT 0,
       notes TEXT DEFAULT '',
+      client TEXT,
       createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
       updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
     )
@@ -75,6 +76,7 @@ await run(`
   if (!budgetColNames.has('pdfOriginalName')) await run(`ALTER TABLE budgets ADD COLUMN pdfOriginalName TEXT`);
   if (!budgetColNames.has('notes')) await run(`ALTER TABLE budgets ADD COLUMN notes TEXT DEFAULT ''`);
   if (!budgetColNames.has('notes')) await run(`ALTER TABLE budgets ADD COLUMN notes TEXT`);
+  if (!budgetColNames.has('client')) await run(`ALTER TABLE budgets ADD COLUMN client TEXT`);
 
   await run(`
     CREATE TABLE IF NOT EXISTS executed_budgets (
@@ -94,6 +96,7 @@ await run(`
       category TEXT,
       assignedPersonnel TEXT DEFAULT '[]',
       fromAcceptedBag INTEGER DEFAULT 0,
+      client TEXT,
       executedAt TEXT DEFAULT CURRENT_TIMESTAMP,
       createdAt TEXT,
       updatedAt TEXT
@@ -145,6 +148,11 @@ await run(`
   if (!acceptedColNames.has('category')) await run(`ALTER TABLE accepted_budgets ADD COLUMN category TEXT`);
   if (!acceptedColNames.has('assignedPersonnel')) await run(`ALTER TABLE accepted_budgets ADD COLUMN assignedPersonnel TEXT DEFAULT '[]'`);
   if (!acceptedColNames.has('notes')) await run(`ALTER TABLE accepted_budgets ADD COLUMN notes TEXT`);
+
+  // Lightweight migration for executed_budgets on existing DBs.
+  const executedCols = await all(`PRAGMA table_info(executed_budgets)`);
+  const executedColNames = new Set((executedCols || []).map((c) => c.name));
+  if (!executedColNames.has('client')) await run(`ALTER TABLE executed_budgets ADD COLUMN client TEXT`);
 
   await run(`
     CREATE TABLE IF NOT EXISTS users (

@@ -111,6 +111,7 @@ Endpoints admin relevantes (auth):
 - `assignedPersonnel: string[]`
 - `fromAcceptedBag`
 - `notes` (anotaciones libres del presupuesto)
+- `client` (nombre del cliente)
 
 ### Ejecutados (`executed_budgets`)
 - `id`
@@ -130,6 +131,7 @@ Endpoints admin relevantes (auth):
 - `assignedPersonnel: string[]`
 - `fromAcceptedBag`
 - `executedAt`
+- `client` (nombre del cliente)
 
 ### Personal (`personnel`)
 - `id`
@@ -159,6 +161,18 @@ Endpoints admin relevantes (auth):
 - La API está protegida por autenticación backend real (sesión) y autorización por roles/permisos.
 - Adjuntos PDF: almacenados en volumen del backend (ruta contenedor: `/app/upload/pdfs`).
 - Compatibilidad iPad/Safari iOS 12.x: build dirigido a `ios_saf >= 12.0` + polyfills globales (`react-app-polyfill/stable`) para evitar roturas por sintaxis/APIs modernas.
+
+## Cambios recientes (v0.14 - 2026-07-28)
+- **Campo Cliente en "Lista de Presupuestos en Planificación"**:
+  - Campo `client` en tabla `budgets` con migración automática.
+  - Campo `client` en tabla `executed_budgets` con migración automática.
+  - Input "Cliente" en formulario "Mesa de Planificación" (entre #Ticket y Horas Totales).
+  - Visualización del cliente en tarjetas "Lista de Presupuestos en Planificación".
+  - Incluido en exportación a CSV.
+  - Se propaga al mover presupuesto de "Bolsa Aceptados" → "Mesa Planificación".
+  - Se conserva al devolver de "Mesa Planificación" → "Bolsa Aceptados".
+  - Se copia al usar presupuesto como plantilla.
+  - Se migra al mover a "Ejecutados".
 
 ## Cambios recientes (v0.13 - 2026-07-19)
 - **Anotaciones / notas en presupuestos** (Mesa de Planificación):
