@@ -17,7 +17,7 @@ Mejora funcional: campo Cliente en "Lista de Presupuestos en Planificación".
 - **Ejecución** (`/api/budgets/:id/execute`): migra el cliente a `executed_budgets`.
 - **Backend**: `parseBudgetRow`, `POST /api/budgets`, `PUT /api/budgets/:id`, `POST /api/budgets/:id/execute` incluyen `client`.
 - **Frontend**: `useBudgets` hook incluye `client` en `budgetForm`, `editBudget`, `saveBudget`, `useBudgetAsTemplate`, `moveAcceptedToPlanning`, `moveBudgetToAcceptedBag`, `exportToCSV`.
-- **UI**: `PlanningView.jsx` formulario (input L148-157) y listado (render L551).
+- **UI**: `PlanningView.jsx` formulario (input L148-157), listado (render cliente y fechas de inicio/fin destacadas con badge y icono 📅).
 
 ---
 

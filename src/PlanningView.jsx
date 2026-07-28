@@ -566,7 +566,11 @@ function PlanningView() {
                       <p className="text-sm text-gray-600">PDF: -</p>
                     )}
                     <p className="text-sm text-gray-600">Horas Totales: {budget.totalHours}</p>
-                    <p className="text-sm text-gray-600">Inicio: {budget.startDate} | Fin: {budget.endDate}</p>
+                    <div className="mt-2 text-sm bg-blue-100/70 p-2 rounded border border-blue-200 flex flex-wrap items-center gap-3">
+                      <span className="font-semibold text-blue-900">📅 Planificación:</span>
+                      <span className="text-blue-900">Inicio: <strong>{budget.startDate || '-'}</strong></span>
+                      <span className="text-blue-900">Fin: <strong>{budget.endDate || '-'}</strong></span>
+                    </div>
                     {assignedPeople.length > 0 && (
                       <div className="mt-2 text-sm text-gray-700">
                         <span className="font-medium">Personal Asignado:</span>
